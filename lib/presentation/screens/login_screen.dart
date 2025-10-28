@@ -19,12 +19,10 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _errorMessage;
 
   Future<void> _signIn() async {
-    // التحقق من صحة النموذج
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    // إخفاء لوحة المفاتيح
     FocusScope.of(context).unfocus();
 
     setState(() {
@@ -42,18 +40,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
       print('✅ تم تسجيل الدخول بنجاح');
 
-      // الانتظار قليلاً للتأكد من تحديث الـ AuthStateModel
-      await Future.delayed(const Duration(milliseconds: 500));
+      // ✅ تقليل وقت الانتظار من 500ms إلى 200ms
+      await Future.delayed(const Duration(milliseconds: 200));
 
-      // AuthStateModel سيقوم بالتوجيه التلقائي عبر AuthGateScreen
-      // لا حاجة للـ Navigation هنا
+      // AuthStateModel listener سيتولى التوجيه تلقائياً
     } on Exception catch (e) {
       print('❌ خطأ في تسجيل الدخول: $e');
 
       if (mounted) {
         String errorMsg = e.toString().replaceAll('Exception: ', '');
 
-        // ترجمة الأخطاء الشائعة
         if (errorMsg.contains('Invalid login credentials')) {
           errorMsg = 'البريد الإلكتروني أو كلمة المرور غير صحيحة';
         } else if (errorMsg.contains('Email not confirmed')) {
@@ -117,11 +113,9 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // أيقونة تسجيل الدخول
                 const Icon(Icons.login, size: 80, color: Colors.blue),
                 const SizedBox(height: 20),
 
-                // عنوان
                 const Text(
                   'مرحباً بك',
                   textAlign: TextAlign.center,
@@ -135,7 +129,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 40),
 
-                // عرض رسالة الخطأ إن وجدت
                 if (_errorMessage != null)
                   Container(
                     padding: const EdgeInsets.all(12),
@@ -159,7 +152,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
 
-                // حقل البريد الإلكتروني
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
@@ -183,7 +175,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // حقل كلمة المرور
                 TextFormField(
                   controller: _passwordController,
                   obscureText: true,
@@ -208,7 +199,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                // زر تسجيل الدخول
                 SizedBox(
                   height: 50,
                   child: ElevatedButton(
@@ -235,7 +225,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // زر الانتقال للتسجيل
                 TextButton(
                   onPressed: _isLoading
                       ? null

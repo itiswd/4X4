@@ -48,7 +48,7 @@ class AuthService {
     }
   }
 
-  // دالة تسجيل حساب جديد
+  // دالة تسجيل حساب جديد - محسّنة
   Future<void> signUp({
     required String email,
     required String password,
@@ -56,7 +56,6 @@ class AuthService {
     String? groupId,
   }) async {
     try {
-      // 1. التحقق من صحة البيانات المدخلة
       if (email.isEmpty || !email.contains('@')) {
         throw Exception('البريد الإلكتروني غير صحيح');
       }
@@ -67,17 +66,13 @@ class AuthService {
 
       print('🚀 بدء عملية التسجيل للبريد: $email بدور: $role');
 
-      // 2. إنشاء المستخدم في Supabase Auth
-      // الـ Trigger سيتولى إنشاء الـ profile تلقائياً
+      // إنشاء المستخدم في Supabase Auth
       final AuthResponse response = await supabase.auth.signUp(
         email: email,
         password: password,
-        data: {
-          'role': role, // الـ Trigger سيقرأ الـ role من هنا
-        },
+        data: {'role': role},
       );
 
-      // 3. التحقق من نجاح إنشاء المستخدم
       if (response.user == null) {
         throw Exception('فشل في إنشاء المستخدم');
       }
@@ -85,46 +80,56 @@ class AuthService {
       final String userId = response.user!.id;
       print('✅ تم إنشاء المستخدم: $userId');
 
-      // 4. الانتظار حتى يتم إنشاء الـ profile بواسطة الـ Trigger
+      // ✅ تقليل وقت الانتظار من 1500ms إلى 500ms
       print('⏳ انتظار إنشاء الملف الشخصي...');
-      await Future.delayed(const Duration(milliseconds: 1500));
+      await Future.delayed(const Duration(milliseconds: 500));
 
-      // 5. التحقق من إنشاء الـ Profile
-      try {
-        final checkProfile = await supabase
-            .from('profiles')
-            .select()
-            .eq('id', userId)
-            .maybeSingle();
+      // ✅ محاولة التحقق من الـ Profile مع إعادة المحاولة
+      int attempts = 0;
+      Map<String, dynamic>? checkProfile;
 
-        if (checkProfile == null) {
-          print('⚠️ لم يتم العثور على الملف الشخصي');
-          throw Exception('لم يتم إنشاء الملف الشخصي. يرجى المحاولة مرة أخرى.');
+      while (attempts < 3 && checkProfile == null) {
+        try {
+          checkProfile = await supabase
+              .from('profiles')
+              .select()
+              .eq('id', userId)
+              .maybeSingle();
+
+          if (checkProfile != null) {
+            print('✅ تم التحقق من الملف الشخصي: $checkProfile');
+
+            final storedRole = checkProfile['role'] as String?;
+            if (storedRole == role) {
+              print('✅ الدور صحيح: $storedRole');
+            } else {
+              print(
+                '⚠️ الدور المُخزن ($storedRole) لا يطابق الدور المطلوب ($role)',
+              );
+            }
+            break;
+          }
+        } catch (e) {
+          print('⚠️ محاولة ${attempts + 1}: فشل التحقق من الملف الشخصي');
         }
 
-        print('✅ تم التحقق من الملف الشخصي: $checkProfile');
-
-        // التحقق من صحة الدور
-        final storedRole = checkProfile['role'] as String?;
-        if (storedRole != role) {
-          print(
-            '⚠️ الدور المُخزن ($storedRole) لا يطابق الدور المطلوب ($role)',
-          );
-        } else {
-          print('✅ الدور صحيح: $storedRole');
+        attempts++;
+        if (checkProfile == null && attempts < 3) {
+          await Future.delayed(const Duration(milliseconds: 300));
         }
-      } catch (profileError) {
-        print('❌ خطأ في التحقق من الملف الشخصي: $profileError');
-        // لا نرمي exception هنا، لأن المستخدم تم إنشاؤه بنجاح
       }
 
-      // 6. تسجيل الخروج بعد التسجيل الناجح
+      if (checkProfile == null) {
+        print('⚠️ لم يتم العثور على الملف الشخصي بعد 3 محاولات');
+        // لا نرمي exception، المستخدم تم إنشاؤه بنجاح
+      }
+
+      // تسجيل الخروج بعد التسجيل الناجح
       await supabase.auth.signOut();
       print('✅ تم تسجيل الخروج بعد إنشاء الحساب بنجاح');
     } on AuthException catch (e) {
       print('❌ Auth Error: ${e.message}');
 
-      // ترجمة الأخطاء الشائعة
       if (e.message.contains('already registered') ||
           e.message.contains('already exists') ||
           e.message.contains('User already registered')) {
@@ -142,7 +147,6 @@ class AuthService {
     }
   }
 
-  // دالة تحديث مجموعة الطالب
   Future<void> updateStudentGroup({required String groupId}) async {
     final String? userId = supabase.auth.currentUser?.id;
 
@@ -163,7 +167,6 @@ class AuthService {
     }
   }
 
-  // دالة جلب الملف الشخصي للمستخدم الحالي
   Future<Map<String, dynamic>> getCurrentUserProfile() async {
     final String? userId = supabase.auth.currentUser?.id;
 
@@ -189,7 +192,6 @@ class AuthService {
     }
   }
 
-  // دالة تسجيل الخروج
   Future<void> signOut() async {
     await supabase.auth.signOut();
   }
