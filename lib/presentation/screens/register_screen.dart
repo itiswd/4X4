@@ -38,10 +38,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _isLoading = true);
 
     try {
+      // التسجيل بدون groupId - الطالب سيختار المجموعة بعد تسجيل الدخول
       await _authService.signUp(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
         role: _selectedRole,
+        groupId: null, // نمرر null دائماً
       );
 
       if (!mounted) return;
@@ -50,7 +52,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'تم التسجيل بنجاح كـ ${_selectedRole == 'admin' ? 'مدير' : 'طالب'}! يمكنك الآن تسجيل الدخول.',
+            '✅ تم التسجيل بنجاح كـ ${_selectedRole == 'admin' ? 'مدير' : 'طالب'}!\n'
+            '${_selectedRole == 'student' ? 'يمكنك اختيار المجموعة بعد تسجيل الدخول.' : 'يمكنك الآن تسجيل الدخول وإنشاء المجموعات.'}',
           ),
           backgroundColor: Colors.green,
           duration: const Duration(seconds: 3),
@@ -58,7 +61,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
 
       // الانتظار قليلاً ثم العودة لشاشة تسجيل الدخول
-      await Future.delayed(const Duration(seconds: 1));
+      await Future.delayed(const Duration(milliseconds: 1500));
 
       if (!mounted) return;
 
