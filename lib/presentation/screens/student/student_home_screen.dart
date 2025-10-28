@@ -135,7 +135,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                     Text(
                       'مجموعتك الحالية: $displayGroupName',
                       style: const TextStyle(
-                        fontSize: 16,
+                        fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
                     ),

@@ -42,11 +42,12 @@ class AuthService {
     }
   }
 
-  // دالة تسجيل حساب جديد
-  Future<void> signUp({
+  // دالة تسجيل حساب جديد - مُحسّنة لحفظ الاسم الكامل ومعرف المجموعة
+  Future<String?> signUp({
     required String email,
     required String password,
     required String role,
+    required String fullName,
     String? groupId,
   }) async {
     try {
@@ -64,9 +65,19 @@ class AuthService {
         throw Exception('فشل في إنشاء المستخدم');
       }
 
-      await Future.delayed(const Duration(milliseconds: 1500));
+      final userId = response.user!.id;
+
+      // ✅ تحديث البيانات قبل تسجيل الخروج
+      await _client
+          .from('profiles')
+          .update({'full_name': fullName, 'group_id': groupId})
+          .eq('id', userId);
+
+      await Future.delayed(const Duration(milliseconds: 500));
 
       await _client.auth.signOut();
+
+      return userId;
     } on AuthException catch (e) {
       if (e.message.contains('already registered') ||
           e.message.contains('already exists')) {

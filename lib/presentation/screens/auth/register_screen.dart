@@ -25,6 +25,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? _selectedRole;
   String? _selectedGroupId;
   List<Group> _availableGroups = [];
+  bool _isGroupsLoading = false;
 
   bool _isLoading = false;
   bool _isPasswordVisible = false;
@@ -32,43 +33,45 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchGroups();
+    // ✅ تحميل المجموعات بشكل مستقل عند فتح الشاشة
+    _fetchGroupsForAnonymous();
   }
 
-  Future<void> _fetchGroups() async {
+  // ✅ دالة لجلب المجموعات بدون تسجيل دخول
+  Future<void> _fetchGroupsForAnonymous() async {
+    setState(() => _isGroupsLoading = true);
+
     try {
-      final groups = await _groupService.getAllGroups();
+      // استخدام استعلام مباشر بدون مصادقة
+      final response = await supabase
+          .from('groups')
+          .select('id, name, admin_id')
+          .order('name', ascending: true);
+
       if (mounted) {
+        final groups = (response as List)
+            .map((map) => Group.fromMap(map as Map<String, dynamic>))
+            .toList();
+
         setState(() {
           _availableGroups = groups;
-          // تعيين أول مجموعة كقيمة افتراضية للطالب عند التحميل
-          if (_availableGroups.isNotEmpty) {
-            if (_selectedRole == 'student' || _selectedRole == null) {
-              _selectedGroupId = _availableGroups.first.id;
-            }
+          // تعيين أول مجموعة كقيمة افتراضية
+          if (_availableGroups.isNotEmpty && _selectedRole == 'student') {
+            _selectedGroupId = _availableGroups.first.id;
           }
+          _isGroupsLoading = false;
         });
-      }
-    } on PostgrestException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'خطأ RLS: فشل جلب المجموعات. تحقق من سياسة RLS لجدول groups. ${e.message}',
-              textAlign: TextAlign.right,
-            ),
-            backgroundColor: Colors.red,
-          ),
-        );
       }
     } catch (e) {
       if (mounted) {
+        setState(() => _isGroupsLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'فشل جلب المجموعات: ${e.toString()}',
+              'تحذير: فشل جلب المجموعات. ${e.toString()}',
               textAlign: TextAlign.right,
             ),
+            backgroundColor: Colors.orange,
           ),
         );
       }
@@ -108,24 +111,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
 
     try {
-      // 1. تسجيل المستخدم في نظام المصادقة (يتم إنشاء ملف تعريف بقيم افتراضية)
+      // ✅ تسجيل المستخدم مع حفظ الاسم الكامل والمجموعة مباشرة
       await _authService.signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
         role: _selectedRole!,
+        fullName: _fullNameController.text.trim(),
+        groupId: _selectedRole == 'student' ? _selectedGroupId : null,
       );
-
-      // 2. تحديث جدول profiles بالاسم الكامل ومعرف المجموعة
-      final currentUser = _authService.client.auth.currentUser;
-      if (currentUser != null) {
-        await _authService.client
-            .from('profiles')
-            .update({
-              'full_name': _fullNameController.text.trim(),
-              'group_id': _selectedRole == 'student' ? _selectedGroupId : null,
-            })
-            .eq('id', currentUser.id);
-      }
 
       if (!mounted) return;
 
@@ -320,9 +313,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                     // اختيار المجموعة (للطالب فقط)
                     if (_selectedRole == 'student')
-                      _availableGroups.isEmpty && !_isLoading
+                      _isGroupsLoading
                           ? const Center(
-                              child: Text('لا توجد مجموعات متاحة حالياً.'),
+                              child: Padding(
+                                padding: EdgeInsets.all(16.0),
+                                child: CircularProgressIndicator(),
+                              ),
+                            )
+                          : _availableGroups.isEmpty
+                          ? Column(
+                              children: [
+                                const Text(
+                                  'لا توجد مجموعات متاحة حالياً.',
+                                  style: TextStyle(color: Colors.red),
+                                ),
+                                TextButton.icon(
+                                  onPressed: _fetchGroupsForAnonymous,
+                                  icon: const Icon(Icons.refresh),
+                                  label: const Text('إعادة المحاولة'),
+                                ),
+                              ],
                             )
                           : DropdownButtonFormField<String>(
                               decoration: const InputDecoration(
