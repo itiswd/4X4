@@ -1,6 +1,7 @@
 import 'package:educational_app/main.dart';
 import 'package:educational_app/utils/responsive_utils.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 
 import '../../../data/models/auth_state_model.dart';
@@ -112,7 +113,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Padding(
-                padding: const EdgeInsets.all(30.0),
+                padding: EdgeInsets.all(24.w),
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -121,10 +122,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       Icon(
                         Icons.lock_open_rounded,
-                        size: 70,
+                        size: 70.sp,
                         color: Theme.of(context).colorScheme.primary,
                       ),
-                      const SizedBox(height: 15),
+                      SizedBox(height: 15.h),
 
                       Text(
                         'مرحباً بك مجدداً',
@@ -135,14 +136,14 @@ class _LoginScreenState extends State<LoginScreen> {
                               color: Theme.of(context).colorScheme.primary,
                             ),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8.h),
 
-                      const Text(
+                      Text(
                         'أدخل بياناتك للمتابعة',
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                        style: TextStyle(fontSize: 16.sp, color: Colors.grey),
                       ),
-                      const SizedBox(height: 30),
+                      SizedBox(height: 30.h),
 
                       // حقل البريد الإلكتروني
                       TextFormField(
@@ -165,7 +166,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           return null;
                         },
                       ),
-                      const SizedBox(height: 20),
+                      SizedBox(height: 12.h),
 
                       // حقل كلمة المرور
                       TextFormField(

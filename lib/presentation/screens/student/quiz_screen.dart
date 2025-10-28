@@ -1,6 +1,6 @@
 import 'package:educational_app/data/services/question_service.dart';
-import 'package:educational_app/utils/responsive_utils.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../data/models/question.dart';
 import '../../../data/services/progress_service.dart';
@@ -119,27 +119,23 @@ class _QuizScreenState extends State<QuizScreen> {
           final currentQuestion = _questions[_currentQuestionIndex];
 
           return Padding(
-            padding: const EdgeInsets.all(24.0),
+            padding: EdgeInsets.all(24.w),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
                   'السؤال رقم ${_currentQuestionIndex + 1} من ${_questions.length}',
-                  style: TextStyle(fontSize: 16, color: Colors.grey[800]),
+                  style: TextStyle(fontSize: 16.sp, color: Colors.grey[800]),
                 ),
-                const SizedBox(height: 30),
+                SizedBox(height: 40.h),
                 Text(
                   currentQuestion.questionText,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: ResponsiveUtils.getResponsiveFontSize(
-                      context,
-                      48,
-                    ),
+                    fontSize: 72.sp, // سيتكيف تلقائياً مع الشاشة
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 40),
+                SizedBox(height: 40.h),
                 TextField(
                   controller: _answerController,
                   decoration: const InputDecoration(
@@ -156,7 +152,7 @@ class _QuizScreenState extends State<QuizScreen> {
                       Text(
                         _isCorrect
                             ? 'إجابة صحيحة! 🎉'
-                            : 'إجابة خاطئة. 😔 الإجابة هي: ${currentQuestion.answer}',
+                            : 'إجابة خاطئة! 😔\n الإجابة هي: ${currentQuestion.answer}',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,

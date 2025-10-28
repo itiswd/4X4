@@ -1,6 +1,7 @@
 // lib/presentation/screens/student/student_home_screen.dart
 import 'package:educational_app/presentation/widgets/loading_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 
 import '../../../data/models/auth_state_model.dart';
@@ -112,30 +113,29 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         Card(
           elevation: 4,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(16.r),
           ),
-          color: primaryColor.withAlpha(5),
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.all(20.w),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(
                   'مرحباً بك، $fullName!',
                   style: Theme.of(context).textTheme.headlineSmall!.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: primaryColor,
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8.h),
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.group_rounded, color: primaryColor, size: 24),
-                    const SizedBox(width: 8),
+                    Icon(Icons.group_rounded, size: 24.sp),
+                    SizedBox(width: 8.w),
                     Text(
                       'مجموعتك الحالية: $displayGroupName',
-                      style: const TextStyle(
-                        fontSize: 13,
+                      style: TextStyle(
+                        fontSize: 12.sp,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -145,7 +145,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 24),
+
+        SizedBox(height: 24.h),
 
         ElevatedButton.icon(
           onPressed: () {
@@ -155,17 +156,13 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
               ),
             );
           },
-          icon: const Icon(Icons.play_circle_filled_rounded, size: 28),
-          label: const Text(
+          icon: Icon(Icons.play_circle_filled_rounded, size: 28.sp),
+          label: Text(
             'ابدأ حل الأسئلة الآن',
-            style: TextStyle(fontSize: 18),
+            style: TextStyle(fontSize: 18.sp),
           ),
           style: ElevatedButton.styleFrom(
-            backgroundColor: secondaryColor,
-            foregroundColor: Colors.black,
-            padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-            elevation: 8,
-            shadowColor: secondaryColor.withOpacity(0.5),
+            padding: EdgeInsets.symmetric(horizontal: 30.w, vertical: 15.h),
           ),
         ),
 
