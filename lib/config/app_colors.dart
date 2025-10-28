@@ -65,9 +65,9 @@ class AppColors {
   static const Color borderDark = Color(0xFF9E9E9E);
 
   // 💫 ألوان الظلال
-  static Color shadowLight = Colors.black.withOpacity(0.05);
-  static Color shadowMedium = Colors.black.withOpacity(0.1);
-  static Color shadowDark = Colors.black.withOpacity(0.15);
+  static Color shadowLight = Colors.black.withAlpha(13);
+  static Color shadowMedium = Colors.black.withAlpha(25);
+  static Color shadowDark = Colors.black.withAlpha(38);
 
   // 🎨 Gradients - تدرجات لونية جميلة
   static const LinearGradient primaryGradient = LinearGradient(

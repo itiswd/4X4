@@ -74,7 +74,7 @@ class AdminHomeScreen extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Theme.of(
                   context,
-                ).colorScheme.primaryContainer.withOpacity(0.5),
+                ).colorScheme.primaryContainer.withAlpha(127),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Row(

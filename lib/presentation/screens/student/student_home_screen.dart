@@ -90,9 +90,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   }
 
   Widget _buildGroupSelectedState(BuildContext context, String groupId) {
-    final primaryColor = Theme.of(context).colorScheme.primary;
-    final secondaryColor = Theme.of(context).colorScheme.secondary;
-
     if (_isGroupDataLoading) {
       return const Center(
         child: Padding(

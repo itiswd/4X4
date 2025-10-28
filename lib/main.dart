@@ -35,10 +35,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     // 🎨 الألوان الجديدة - مناسبة للأطفال
     const Color primaryColor = Color(0xFF4CAF50); // أخضر مريح
-    const Color primaryLight = Color(0xFF81C784);
     const Color secondaryColor = Color(0xFFFF9800); // برتقالي دافئ
     const Color errorColor = Color(0xFFEF5350);
-    const Color successColor = Color(0xFF66BB6A);
 
     return ScreenUtilInit(
       designSize: const Size(375, 812), // حجم التصميم الأساسي (iPhone X)
@@ -128,7 +126,7 @@ class MyApp extends StatelessWidget {
                 backgroundColor: primaryColor,
                 foregroundColor: Colors.white,
                 elevation: 2,
-                shadowColor: primaryColor.withOpacity(0.3),
+                shadowColor: primaryColor.withAlpha(77),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),

@@ -1,7 +1,6 @@
 // lib/presentation/screens/register_screen.dart
 import 'package:educational_app/data/models/group.dart';
 import 'package:educational_app/data/services/auth_service.dart';
-import 'package:educational_app/data/services/group_service.dart';
 import 'package:educational_app/main.dart';
 import 'package:educational_app/utils/responsive_utils.dart';
 import 'package:flutter/material.dart';
@@ -21,7 +20,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _fullNameController = TextEditingController();
 
   final AuthService _authService = AuthService(client: supabase);
-  final GroupService _groupService = GroupService();
 
   String? _selectedRole;
   String? _selectedGroupId;
@@ -135,7 +133,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       Navigator.of(context).pop();
     } on AuthException catch (e) {
       if (mounted) {
-        String errorMsg = e.message ?? 'حدث خطأ أثناء التسجيل.';
+        String errorMsg = e.message;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errorMsg, textAlign: TextAlign.right),
@@ -145,7 +143,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       }
     } on PostgrestException catch (e) {
       if (mounted) {
-        String errorMsg = e.message ?? 'حدث خطأ أثناء تحديث بياناتك.';
+        String errorMsg = e.message;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
