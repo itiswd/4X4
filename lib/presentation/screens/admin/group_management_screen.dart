@@ -74,7 +74,10 @@ class _GroupManagementScreenState extends State<GroupManagementScreen> {
                   }
                 }
               },
-              child: Text(isEditing ? 'تعديل' : 'إضافة'),
+              child: Text(
+                isEditing ? 'تعديل' : 'إضافة',
+                style: TextStyle(fontFamily: 'Cairo'),
+              ),
             ),
           ],
         );
@@ -119,7 +122,18 @@ class _GroupManagementScreenState extends State<GroupManagementScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('إدارة المجموعات')),
+      appBar: AppBar(
+        title: const Text(
+          'إدارة المجموعات',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios),
+          onPressed: () => Navigator.of(context).pop(),
+          tooltip: 'العودة',
+        ),
+      ),
+
       body: FutureBuilder<List<Group>>(
         future: _groupsFuture,
         builder: (context, snapshot) {

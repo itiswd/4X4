@@ -50,7 +50,10 @@ class AdminHomeScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('لوحة تحكم المدير'),
+        title: const Text(
+          'لوحة تحكم المدير',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout_rounded),
@@ -108,10 +111,11 @@ class AdminHomeScreen extends StatelessWidget {
             const SizedBox(height: 30),
 
             Text(
-              'الإجراءات الرئيسية',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge!.copyWith(fontWeight: FontWeight.bold),
+              'الإجراءات الرئيسية:',
+              style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                fontWeight: FontWeight.bold,
+                fontSize: 22,
+              ),
             ),
             const SizedBox(height: 15),
 
