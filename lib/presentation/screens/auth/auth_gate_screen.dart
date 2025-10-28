@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../data/models/auth_state_model.dart';
-import 'admin/admin_home_screen.dart';
-import 'loading_screen.dart';
+import '../../../data/models/auth_state_model.dart';
+import '../../widgets/loading_screen.dart';
+import '../admin/admin_home_screen.dart';
+import '../student/student_home_screen.dart';
 import 'login_screen.dart';
-import 'student/student_home_screen.dart';
 
 class AuthGateScreen extends StatelessWidget {
   const AuthGateScreen({super.key});

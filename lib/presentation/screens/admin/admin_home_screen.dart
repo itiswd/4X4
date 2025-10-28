@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../data/models/auth_state_model.dart';
-import '../loading_screen.dart';
+import '../../widgets/loading_screen.dart';
 import 'group_management_screen.dart';
 import 'student_progress_screen.dart';
 

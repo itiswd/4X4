@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'data/models/auth_state_model.dart';
-import 'presentation/screens/auth_gate_screen.dart';
+import 'presentation/screens/auth/auth_gate_screen.dart';
 
 // تعريف الـ URL والـ Key
 const supaBaseUrl = 'https://nopmggwpncgezhbiahhi.supabase.co';
