@@ -191,14 +191,34 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           'لوحة تحكم الطالب',
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout_rounded),
+      ),
+      // ضيف هذا بعد body: وقبل قفل الـ Scaffold
+      bottomNavigationBar: Container(
+        padding: EdgeInsets.all(16.w),
+
+        child: SafeArea(
+          child: ElevatedButton.icon(
             onPressed: () => context.read<AuthStateModel>().signOut(),
-            tooltip: 'تسجيل الخروج',
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade600,
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(vertical: 12.h),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+              elevation: 0,
+            ),
+            icon: Icon(Icons.logout_rounded, size: 24.sp),
+            label: Text(
+              'تسجيل الخروج',
+              style: TextStyle(
+                fontSize: 18.sp,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Cairo',
+              ),
+            ),
           ),
-          const SizedBox(width: 8),
-        ],
+        ),
       ),
       body: RefreshIndicator(
         onRefresh: _handleRefresh,
