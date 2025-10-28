@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../config/app_colors.dart';
 import '../../../data/models/group.dart';
 import '../../../data/models/profile.dart';
 import '../../../data/services/group_service.dart';
 import '../../../data/services/progress_service.dart';
+import 'student_detail_screen.dart';
 
 class GroupStudentListScreen extends StatefulWidget {
   final Group group;
@@ -17,17 +19,14 @@ class GroupStudentListScreen extends StatefulWidget {
 class _GroupStudentListScreenState extends State<GroupStudentListScreen> {
   final GroupService _groupService = GroupService();
   final ProgressService _progressService = ProgressService();
-  // لحفظ نتيجة جلب الطلاب في هذه المجموعة
   late Future<List<Profile>> _studentsFuture;
 
   @override
   void initState() {
     super.initState();
-    // جلب الطلاب المنضمين إلى المجموعة المحددة
     _studentsFuture = _groupService.getStudentsInGroup(widget.group.id);
   }
 
-  // دالة مساعدة لجلب الإحصائيات وعرضها في ListTile
   Widget _buildStudentTile(Profile student) {
     return FutureBuilder<Map<String, dynamic>>(
       future: _progressService.getStudentPerformanceSummary(student.id),
@@ -36,11 +35,11 @@ class _GroupStudentListScreenState extends State<GroupStudentListScreen> {
         Widget trailingWidget = SizedBox(
           width: 24.w,
           height: 24.h,
-          child: CircularProgressIndicator(strokeWidth: 2),
+          child: const CircularProgressIndicator(strokeWidth: 2),
         );
 
         if (snapshot.connectionState == ConnectionState.waiting) {
-          // حالة التحميل أثناء جلب الإحصائيات
+          // حالة التحميل
         } else if (snapshot.hasError) {
           subtitleText = 'فشل تحميل التقدم';
           trailingWidget = const Icon(Icons.error, color: Colors.red);
@@ -49,41 +48,50 @@ class _GroupStudentListScreenState extends State<GroupStudentListScreen> {
           final total = summary['total_attempts'];
           final accuracy = summary['accuracy'];
 
-          subtitleText = 'المحاولات: $total\nالدقة: ${accuracy.toInt()}%';
-          trailingWidget = Text(
-            '${accuracy.toStringAsFixed(0)}%',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 24.sp,
-              // تغيير اللون حسب مستوى الدقة
-              color: accuracy >= 75
-                  ? Colors.green
-                  : accuracy >= 50
-                  ? Colors.orange
-                  : Colors.red,
-            ),
+          subtitleText = 'المحاولات: $total | الدقة: ${accuracy.toInt()}%';
+
+          // أيقونة السهم للتفاصيل
+          trailingWidget = Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '${accuracy.toStringAsFixed(0)}%',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20.sp,
+                  color: AppColors.getPerformanceColor(accuracy),
+                ),
+              ),
+              SizedBox(width: 8.w),
+              Icon(Icons.arrow_forward_ios, size: 16.sp),
+            ],
           );
         }
 
         return Card(
           margin: EdgeInsets.symmetric(vertical: 6.h),
           child: ListTile(
+            onTap: () {
+              // الانتقال لشاشة التفاصيل
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => StudentDetailScreen(student: student),
+                ),
+              );
+            },
             leading: CircleAvatar(
-              radius: 20.r,
-              backgroundColor: Theme.of(
-                context,
-              ).colorScheme.primary.withAlpha(32),
-              child: Icon(
-                Icons.person,
-                color: Theme.of(context).colorScheme.primary,
-                size: 22.sp,
-              ),
+              radius: 24.r,
+              backgroundColor: AppColors.primary.withAlpha(32),
+              child: Icon(Icons.person, color: AppColors.primary, size: 24.sp),
             ),
             title: Text(
               student.fullName,
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20.sp),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.sp),
             ),
-            subtitle: Text(subtitleText, style: TextStyle(fontSize: 14.sp)),
+            subtitle: Padding(
+              padding: EdgeInsets.only(top: 4.h),
+              child: Text(subtitleText, style: TextStyle(fontSize: 13.sp)),
+            ),
             trailing: trailingWidget,
           ),
         );
@@ -96,13 +104,12 @@ class _GroupStudentListScreenState extends State<GroupStudentListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.group.name,
+          'طلاب: ${widget.group.name}',
           style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold),
         ),
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios, size: 20.sp),
           onPressed: () => Navigator.of(context).pop(),
-          tooltip: 'العودة',
         ),
       ),
       body: FutureBuilder<List<Profile>>(
@@ -120,16 +127,25 @@ class _GroupStudentListScreenState extends State<GroupStudentListScreen> {
           final students = snapshot.data ?? [];
 
           if (students.isEmpty) {
-            return const Center(
-              child: Text('لم ينضم أي طالب لهذه المجموعة بعد.'),
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.people_outline, size: 80.sp, color: Colors.grey),
+                  SizedBox(height: 16.h),
+                  Text(
+                    'لم ينضم أي طالب لهذه المجموعة بعد.',
+                    style: TextStyle(fontSize: 16.sp, color: Colors.grey),
+                  ),
+                ],
+              ),
             );
           }
 
           return ListView.builder(
-            padding: const EdgeInsets.all(10.0),
+            padding: EdgeInsets.all(10.w),
             itemCount: students.length,
             itemBuilder: (context, index) {
-              // لكل طالب، نقوم ببناء _buildStudentTile لجلب وعرض إحصائياته
               return _buildStudentTile(students[index]);
             },
           );
