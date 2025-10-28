@@ -1,3 +1,5 @@
+// lib/presentation/screens/register_screen.dart
+import 'package:educational_app/main.dart';
 import 'package:flutter/material.dart';
 
 import '../../data/services/auth_service.dart';
@@ -14,10 +16,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  final AuthService _authService = AuthService();
+  final AuthService _authService = AuthService(client: supabase);
 
   String _selectedRole = 'student';
   bool _isLoading = false;
+  bool _isPasswordVisible = false;
 
   @override
   void dispose() {
@@ -27,42 +30,37 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _register() async {
-    // التحقق من صحة النموذج
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    // إخفاء لوحة المفاتيح
     FocusScope.of(context).unfocus();
 
     setState(() => _isLoading = true);
 
     try {
-      // التسجيل بدون groupId - الطالب سيختار المجموعة بعد تسجيل الدخول
       await _authService.signUp(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
         role: _selectedRole,
-        groupId: null, // نمرر null دائماً
+        groupId: null,
       );
 
       if (!mounted) return;
 
-      // عرض رسالة نجاح
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             '✅ تم التسجيل بنجاح كـ ${_selectedRole == 'admin' ? 'مدير' : 'طالب'}!\n'
-            '${_selectedRole == 'student' ? 'يمكنك اختيار المجموعة بعد تسجيل الدخول.' : 'يمكنك الآن تسجيل الدخول وإنشاء المجموعات.'}',
+            'الرجاء تسجيل الدخول الآن.',
+            textAlign: TextAlign.right,
           ),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 3),
+          backgroundColor: Colors.green.shade700,
+          duration: const Duration(seconds: 4),
         ),
       );
 
-      // الانتظار قليلاً ثم العودة لشاشة تسجيل الدخول
       await Future.delayed(const Duration(milliseconds: 1500));
-
       if (!mounted) return;
 
       Navigator.of(context).pushReplacement(
@@ -71,13 +69,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     } catch (e) {
       if (!mounted) return;
 
-      // استخراج رسالة الخطأ
       String errorMessage = e.toString().replaceAll('Exception: ', '');
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(errorMessage),
-          backgroundColor: Colors.red,
+          content: Text(errorMessage, textAlign: TextAlign.right),
+          backgroundColor: Theme.of(context).colorScheme.error,
           duration: const Duration(seconds: 4),
         ),
       );
@@ -91,152 +87,187 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('تسجيل حساب جديد'), centerTitle: true),
+      appBar: AppBar(title: const Text('تسجيل حساب جديد')),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                // أيقونة تسجيل
-                const Icon(Icons.person_add, size: 80, color: Colors.blue),
-                const SizedBox(height: 20),
+          child: Card(
+            elevation: 8,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(30.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    Icon(
+                      Icons.person_add_alt_1,
+                      size: 70,
+                      color: Theme.of(context).colorScheme.secondary,
+                    ),
+                    const SizedBox(height: 15),
 
-                // حقل البريد الإلكتروني
-                TextFormField(
-                  controller: emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  textDirection: TextDirection.ltr,
-                  decoration: const InputDecoration(
-                    labelText: 'البريد الإلكتروني',
-                    hintText: 'example@email.com',
-                    prefixIcon: Icon(Icons.email),
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'الرجاء إدخال البريد الإلكتروني';
-                    }
-                    if (!value.contains('@') || !value.contains('.')) {
-                      return 'الرجاء إدخال بريد إلكتروني صحيح';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16.0),
+                    Text(
+                      'إنشاء حساب جديد',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.headlineSmall!
+                          .copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.secondary,
+                          ),
+                    ),
+                    const SizedBox(height: 30),
 
-                // حقل كلمة المرور
-                TextFormField(
-                  controller: passwordController,
-                  obscureText: true,
-                  textDirection: TextDirection.ltr,
-                  decoration: const InputDecoration(
-                    labelText: 'كلمة المرور',
-                    hintText: 'يجب أن تكون 6 أحرف على الأقل',
-                    prefixIcon: Icon(Icons.lock),
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'الرجاء إدخال كلمة المرور';
-                    }
-                    if (value.length < 6) {
-                      return 'يجب أن تكون كلمة المرور 6 أحرف على الأقل';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 24.0),
+                    // حقل البريد الإلكتروني
+                    TextFormField(
+                      controller: emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      textDirection: TextDirection.ltr,
+                      enabled: !_isLoading,
+                      decoration: const InputDecoration(
+                        labelText: 'البريد الإلكتروني',
+                        hintText: 'example@email.com',
+                        prefixIcon: Icon(Icons.email),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'الرجاء إدخال البريد الإلكتروني';
+                        }
+                        if (!value.contains('@') || !value.contains('.')) {
+                          return 'الرجاء إدخال بريد إلكتروني صحيح';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 20.0),
 
-                // اختيار الدور
-                Card(
-                  elevation: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 8.0),
-                          child: Text(
-                            'التسجيل كـ:',
-                            style: TextStyle(
-                              fontSize: 16.0,
-                              fontWeight: FontWeight.bold,
+                    // حقل كلمة المرور
+                    TextFormField(
+                      controller: passwordController,
+                      obscureText: !_isPasswordVisible,
+                      textDirection: TextDirection.ltr,
+                      enabled: !_isLoading,
+                      decoration: InputDecoration(
+                        labelText: 'كلمة المرور',
+                        hintText: 'يجب أن تكون 6 أحرف على الأقل',
+                        prefixIcon: const Icon(Icons.lock),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _isPasswordVisible
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                            color: Colors.grey,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _isPasswordVisible = !_isPasswordVisible;
+                            });
+                          },
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'الرجاء إدخال كلمة المرور';
+                        }
+                        if (value.length < 6) {
+                          return 'يجب أن تكون كلمة المرور 6 أحرف على الأقل';
+                        }
+                        return null;
+                      },
+                    ),
+
+                    const SizedBox(height: 24.0),
+
+                    // اختيار الدور (في بطاقة أنيقة)
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              right: 16.0,
+                              top: 8.0,
+                              bottom: 4.0,
+                            ),
+                            child: Text(
+                              'التسجيل كـ:',
+                              style: Theme.of(context).textTheme.titleMedium!
+                                  .copyWith(fontWeight: FontWeight.bold),
                             ),
                           ),
-                        ),
-                        RadioListTile<String>(
-                          title: const Text('طالب'),
-                          subtitle: const Text('للدخول وحل الأسئلة'),
-                          value: 'student',
-                          groupValue: _selectedRole,
-                          onChanged: _isLoading
-                              ? null
-                              : (value) {
-                                  setState(() => _selectedRole = value!);
-                                },
-                        ),
-                        RadioListTile<String>(
-                          title: const Text('مدير/مدرس'),
-                          subtitle: const Text('لإنشاء المجموعات والأسئلة'),
-                          value: 'admin',
-                          groupValue: _selectedRole,
-                          onChanged: _isLoading
-                              ? null
-                              : (value) {
-                                  setState(() => _selectedRole = value!);
-                                },
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24.0),
-
-                // زر التسجيل
-                SizedBox(
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _register,
-                    style: ElevatedButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                          RadioListTile<String>(
+                            title: const Text('طالب'),
+                            subtitle: const Text('للدخول وحل الأسئلة'),
+                            value: 'student',
+                            groupValue: _selectedRole,
+                            activeColor: Theme.of(context).colorScheme.primary,
+                            onChanged: _isLoading
+                                ? null
+                                : (value) {
+                                    setState(() => _selectedRole = value!);
+                                  },
+                          ),
+                          RadioListTile<String>(
+                            title: const Text('مدير/مدرس'),
+                            subtitle: const Text('لإنشاء المجموعات والأسئلة'),
+                            value: 'admin',
+                            groupValue: _selectedRole,
+                            activeColor: Theme.of(context).colorScheme.primary,
+                            onChanged: _isLoading
+                                ? null
+                                : (value) {
+                                    setState(() => _selectedRole = value!);
+                                  },
+                          ),
+                        ],
                       ),
                     ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : const Text(
-                            'تسجيل حساب جديد',
-                            style: TextStyle(fontSize: 18),
-                          ),
-                  ),
-                ),
-                const SizedBox(height: 16.0),
 
-                // زر الانتقال لتسجيل الدخول
-                TextButton(
-                  onPressed: _isLoading
-                      ? null
-                      : () {
-                          Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(
-                              builder: (context) => const LoginScreen(),
-                            ),
-                          );
-                        },
-                  child: const Text('لديك حساب بالفعل؟ تسجيل الدخول'),
+                    const SizedBox(height: 30.0),
+
+                    // زر التسجيل
+                    ElevatedButton(
+                      onPressed: _isLoading ? null : _register,
+                      child: _isLoading
+                          ? SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                color: Theme.of(context).colorScheme.onPrimary,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text('إنشاء الحساب'),
+                    ),
+
+                    const SizedBox(height: 15.0),
+
+                    // زر الانتقال لتسجيل الدخول
+                    TextButton(
+                      onPressed: _isLoading
+                          ? null
+                          : () {
+                              Navigator.of(context).pushReplacement(
+                                MaterialPageRoute(
+                                  builder: (context) => const LoginScreen(),
+                                ),
+                              );
+                            },
+                      child: const Text('لديك حساب بالفعل؟ تسجيل الدخول'),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),

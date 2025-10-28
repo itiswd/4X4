@@ -1,0 +1,2413 @@
+﻿import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'data/models/auth_state_model.dart';
+import 'presentation/screens/auth_gate_screen.dart';
+
+const supaBaseUrl = 'https://nopmggwpncgezhbiahhi.supabase.co';
+const supaBaseUrlAnon =
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vcG1nZ3dwbmNnZXpoYmlhaGhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE0OTY2MDUsImV4cCI6MjA3NzA3MjYwNX0.z2qgdfilN_Aj18Lyi4h4o-GDhySVQ2RfdnsVnrW-gsc';
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Supabase.initialize(url: supaBaseUrl, anonKey: supaBaseUrlAnon);
+
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => AuthStateModel(),
+      child: const MyApp(),
+    ),
+  );
+}
+
+final supabase = Supabase.instance.client;
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Educational App',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
+      home: const AuthGateScreen(),
+    );
+  }
+}
+import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../main.dart';
+import '../services/auth_service.dart';
+
+class AuthStateModel extends ChangeNotifier {
+  final AuthService _authService = AuthService();
+  Session? _session;
+  String? _userRole;
+  bool _isLoadingSession = true;
+
+  AuthStateModel() {
+    _initAuthListener();
+  }
+
+  // Getters
+  bool get isLoggedIn => _session != null;
+  bool get isAdmin => _userRole == 'admin';
+  bool get isStudent => _userRole == 'student';
+  bool get isLoadingSession => _isLoadingSession;
+  String? get userRole => _userRole;
+
+  // دالة عامة لتحديث الملف الشخصي
+  Future<void> reloadProfile() async {
+    if (_session != null) {
+      await _fetchUserProfile();
+      notifyListeners();
+    }
+  }
+
+  // تهيئة مستمع Supabase - محسّن
+  void _initAuthListener() {
+    supabase.auth.onAuthStateChange.listen((data) async {
+      final AuthChangeEvent event = data.event;
+      final Session? session = data.session;
+
+      print('🔄 Auth Event: $event');
+
+      _session = session;
+
+      // تحديث حالة التحميل
+      if (_isLoadingSession) {
+        _isLoadingSession = false;
+      }
+
+      // التعامل مع الأحداث المختلفة
+      if (event == AuthChangeEvent.signedIn ||
+          event == AuthChangeEvent.initialSession) {
+        if (session != null) {
+          print('✅ Session found - User: ${session.user.email}');
+          await _fetchUserProfile();
+        }
+      } else if (event == AuthChangeEvent.signedOut) {
+        print('👋 User signed out');
+        _userRole = null;
+      } else if (event == AuthChangeEvent.tokenRefreshed) {
+        print('🔄 Token refreshed');
+      }
+
+      // ✅ تأكد من استدعاء notifyListeners بعد كل تحديث
+      notifyListeners();
+    });
+  }
+
+  // جلب بيانات المستخدم من قاعدة البيانات - محسّن
+  Future<void> _fetchUserProfile() async {
+    try {
+      print('📥 جلب الملف الشخصي...');
+
+      final profileMap = await _authService.getCurrentUserProfile();
+      _userRole = profileMap['role'] as String?;
+
+      print('✅ تم جلب الملف الشخصي - الدور: $_userRole');
+
+      if (_userRole == null) {
+        debugPrint('⚠️ Warning: User role is null');
+        // ✅ إعادة المحاولة مرة واحدة فقط
+        await Future.delayed(const Duration(milliseconds: 500));
+
+        try {
+          final retryProfile = await _authService.getCurrentUserProfile();
+          _userRole = retryProfile['role'] as String?;
+
+          if (_userRole != null) {
+            print(
+              '✅ تم جلب الملف الشخصي في المحاولة الثانية - الدور: $_userRole',
+            );
+          } else {
+            print('❌ الدور لا يزال null بعد المحاولة الثانية');
+            await signOut();
+            return;
+          }
+        } catch (retryError) {
+          print('❌ فشل في المحاولة الثانية: $retryError');
+          await signOut();
+          return;
+        }
+      }
+
+      // التحقق من صحة الدور
+      if (_userRole != 'admin' && _userRole != 'student') {
+        debugPrint('⚠️ Warning: Invalid user role: $_userRole');
+        _userRole = null;
+        await signOut();
+        return;
+      }
+
+      print('✅ الدور صحيح: $_userRole');
+
+      // ✅ استدعاء notifyListeners بعد تحديث الدور بنجاح
+      notifyListeners();
+    } catch (e) {
+      print('❌ خطأ في جلب الملف الشخصي: $e');
+      _userRole = null;
+
+      final errorString = e.toString();
+
+      if (errorString.contains('الملف الشخصي غير موجود')) {
+        debugPrint('❌ الملف الشخصي غير موجود - تسجيل الخروج');
+        await signOut();
+      } else if (errorString.contains('JWT')) {
+        debugPrint('❌ مشكلة في الـ Token - تسجيل الخروج');
+        await signOut();
+      } else {
+        debugPrint('⚠️ خطأ مؤقت في جلب الملف الشخصي');
+
+        // ✅ محاولة واحدة فقط بدلاً من اثنتين
+        await Future.delayed(const Duration(milliseconds: 500));
+
+        try {
+          final profileMap = await _authService.getCurrentUserProfile();
+          _userRole = profileMap['role'] as String?;
+          print('✅ تم جلب الملف الشخصي بنجاح في المحاولة الثانية');
+          notifyListeners();
+        } catch (retryError) {
+          print('❌ فشل في المحاولة الثانية: $retryError');
+          await signOut();
+        }
+      }
+    }
+  }
+
+  // تسجيل الخروج
+  Future<void> signOut() async {
+    try {
+      print('👋 تسجيل الخروج...');
+      await _authService.signOut();
+      _session = null;
+      _userRole = null;
+      notifyListeners();
+      print('✅ تم تسجيل الخروج بنجاح');
+    } catch (e) {
+      debugPrint('❌ خطأ أثناء تسجيل الخروج: $e');
+      _session = null;
+      _userRole = null;
+      notifyListeners();
+    }
+  }
+}
+class Group {
+  final String id;
+  final String name;
+  final String adminId;
+
+  Group({required this.id, required this.name, required this.adminId});
+
+  // لتحويل البيانات من Supabase (JSON/Map) إلى كائن Group
+  factory Group.fromMap(Map<String, dynamic> map) {
+    return Group(
+      // عند القراءة من Supabase، نحصل على ID
+      id: map['id'] as String,
+      name: map['name'] as String,
+      adminId: map['admin_id'] as String,
+    );
+  }
+
+  // لتحويل كائن Group إلى Map لإرساله إلى Supabase (لعمليات الإنشاء/التحديث)
+  // لا نرسل الـ ID هنا عادةً لأنه يتم إنشاؤه تلقائيًا
+  Map<String, dynamic> toMap() {
+    return {'name': name, 'admin_id': adminId};
+  }
+}
+class Profile {
+  final String id;
+  final String email;
+  final String role; // 'admin' or 'student'
+  final String? groupId; // Null if admin
+
+  Profile({
+    required this.id,
+    required this.email,
+    required this.role,
+    this.groupId,
+  });
+
+  factory Profile.fromMap(Map<String, dynamic> map) {
+    return Profile(
+      id: map['id'] as String,
+      email: map['email'] as String,
+      role: map['role'] as String,
+      groupId: map['group_id'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {'id': id, 'email': email, 'role': role, 'group_id': groupId};
+  }
+}
+class Question {
+  final String id;
+  final String groupId;
+  final String questionText;
+  final int answer;
+
+  Question({
+    required this.id,
+    required this.groupId,
+    required this.questionText,
+    required this.answer,
+  });
+
+  factory Question.fromMap(Map<String, dynamic> map) {
+    return Question(
+      id: map['id'] as String,
+      groupId: map['group_id'] as String,
+      questionText: map['question_text'] as String,
+      answer: map['answer'] as int,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'group_id': groupId,
+      'question_text': questionText,
+      'answer': answer,
+    };
+  }
+
+  // لإنشاء سؤال جديد قبل إرساله لـ Supabase (بدون ID)
+  Map<String, dynamic> toInsertMap() {
+    return {
+      'group_id': groupId,
+      'question_text': questionText,
+      'answer': answer,
+    };
+  }
+}
+class StudentProgress {
+  final String id;
+  final String studentId;
+  final String questionId;
+  final bool isCorrect;
+  final DateTime createdAt;
+
+  StudentProgress({
+    required this.id,
+    required this.studentId,
+    required this.questionId,
+    required this.isCorrect,
+    required this.createdAt,
+  });
+
+  factory StudentProgress.fromMap(Map<String, dynamic> map) {
+    return StudentProgress(
+      id: map['id'] as String,
+      studentId: map['student_id'] as String,
+      questionId: map['question_id'] as String,
+      isCorrect: map['is_correct'] as bool,
+      // تحويل الـ timestamp إلى DateTime
+      createdAt: DateTime.parse(map['created_at'] as String),
+    );
+  }
+
+  // لإنشاء إدخال جديد
+  Map<String, dynamic> toInsertMap() {
+    return {
+      'student_id': studentId,
+      'question_id': questionId,
+      'is_correct': isCorrect,
+      // Supabase سيتولى أمر created_at افتراضيًا
+    };
+  }
+}
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../main.dart';
+
+class AuthService {
+  // دالة تسجيل الدخول
+  Future<void> signIn({required String email, required String password}) async {
+    try {
+      print('🔐 محاولة تسجيل الدخول: $email');
+
+      final response = await supabase.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+
+      if (response.user == null) {
+        throw Exception('فشل تسجيل الدخول');
+      }
+
+      print('✅ تم تسجيل الدخول بنجاح - User ID: ${response.user!.id}');
+
+      // التحقق من وجود الـ Profile
+      final profile = await supabase
+          .from('profiles')
+          .select()
+          .eq('id', response.user!.id)
+          .maybeSingle();
+
+      if (profile == null) {
+        print('⚠️ الملف الشخصي غير موجود');
+        throw Exception('الملف الشخصي غير موجود. يرجى التواصل مع الدعم.');
+      }
+
+      print('✅ تم العثور على الملف الشخصي - الدور: ${profile['role']}');
+    } on AuthException catch (e) {
+      print('❌ Auth Error: ${e.message}');
+
+      if (e.message.contains('Invalid login credentials')) {
+        throw Exception('البريد الإلكتروني أو كلمة المرور غير صحيحة');
+      } else if (e.message.contains('Email not confirmed')) {
+        throw Exception('يرجى تأكيد بريدك الإلكتروني أولاً');
+      }
+
+      throw Exception(e.message);
+    } catch (e) {
+      print('❌ خطأ في تسجيل الدخول: $e');
+      rethrow;
+    }
+  }
+
+  // دالة تسجيل حساب جديد - محسّنة
+  Future<void> signUp({
+    required String email,
+    required String password,
+    required String role,
+    String? groupId,
+  }) async {
+    try {
+      if (email.isEmpty || !email.contains('@')) {
+        throw Exception('البريد الإلكتروني غير صحيح');
+      }
+
+      if (password.length < 6) {
+        throw Exception('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+      }
+
+      print('🚀 بدء عملية التسجيل للبريد: $email بدور: $role');
+
+      // إنشاء المستخدم في Supabase Auth
+      final AuthResponse response = await supabase.auth.signUp(
+        email: email,
+        password: password,
+        data: {'role': role},
+      );
+
+      if (response.user == null) {
+        throw Exception('فشل في إنشاء المستخدم');
+      }
+
+      final String userId = response.user!.id;
+      print('✅ تم إنشاء المستخدم: $userId');
+
+      // ✅ تقليل وقت الانتظار من 1500ms إلى 500ms
+      print('⏳ انتظار إنشاء الملف الشخصي...');
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // ✅ محاولة التحقق من الـ Profile مع إعادة المحاولة
+      int attempts = 0;
+      Map<String, dynamic>? checkProfile;
+
+      while (attempts < 3 && checkProfile == null) {
+        try {
+          checkProfile = await supabase
+              .from('profiles')
+              .select()
+              .eq('id', userId)
+              .maybeSingle();
+
+          if (checkProfile != null) {
+            print('✅ تم التحقق من الملف الشخصي: $checkProfile');
+
+            final storedRole = checkProfile['role'] as String?;
+            if (storedRole == role) {
+              print('✅ الدور صحيح: $storedRole');
+            } else {
+              print(
+                '⚠️ الدور المُخزن ($storedRole) لا يطابق الدور المطلوب ($role)',
+              );
+            }
+            break;
+          }
+        } catch (e) {
+          print('⚠️ محاولة ${attempts + 1}: فشل التحقق من الملف الشخصي');
+        }
+
+        attempts++;
+        if (checkProfile == null && attempts < 3) {
+          await Future.delayed(const Duration(milliseconds: 300));
+        }
+      }
+
+      if (checkProfile == null) {
+        print('⚠️ لم يتم العثور على الملف الشخصي بعد 3 محاولات');
+        // لا نرمي exception، المستخدم تم إنشاؤه بنجاح
+      }
+
+      // تسجيل الخروج بعد التسجيل الناجح
+      await supabase.auth.signOut();
+      print('✅ تم تسجيل الخروج بعد إنشاء الحساب بنجاح');
+    } on AuthException catch (e) {
+      print('❌ Auth Error: ${e.message}');
+
+      if (e.message.contains('already registered') ||
+          e.message.contains('already exists') ||
+          e.message.contains('User already registered')) {
+        throw Exception('هذا البريد الإلكتروني مسجل مسبقاً');
+      } else if (e.message.contains('Password')) {
+        throw Exception('كلمة المرور ضعيفة جداً');
+      } else if (e.message.contains('Email')) {
+        throw Exception('البريد الإلكتروني غير صحيح');
+      }
+
+      throw Exception(e.message);
+    } catch (e) {
+      print('❌ General Error: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> updateStudentGroup({required String groupId}) async {
+    final String? userId = supabase.auth.currentUser?.id;
+
+    if (userId == null) {
+      throw Exception('لا يوجد مستخدم مسجل الدخول');
+    }
+
+    try {
+      await supabase
+          .from('profiles')
+          .update({'group_id': groupId})
+          .eq('id', userId);
+
+      print('✅ تم تحديث المجموعة بنجاح');
+    } catch (e) {
+      print('❌ خطأ في تحديث المجموعة: $e');
+      throw Exception('فشل تحديث المجموعة');
+    }
+  }
+
+  Future<Map<String, dynamic>> getCurrentUserProfile() async {
+    final String? userId = supabase.auth.currentUser?.id;
+
+    if (userId == null) {
+      throw Exception('لا يوجد مستخدم مسجل الدخول');
+    }
+
+    try {
+      final response = await supabase
+          .from('profiles')
+          .select()
+          .eq('id', userId)
+          .maybeSingle();
+
+      if (response == null) {
+        throw Exception('الملف الشخصي غير موجود');
+      }
+
+      return response;
+    } catch (e) {
+      print('❌ خطأ في جلب الملف الشخصي: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> signOut() async {
+    await supabase.auth.signOut();
+  }
+}
+import '../../main.dart'; // للوصول إلى متغير supabase
+import '../models/group.dart';
+import '../models/profile.dart'; // نحتاج لنموذج Profile لجلب الطلاب
+
+class GroupService {
+  // الحصول على جميع المجموعات التي أنشأها المدرس الحالي
+  Future<List<Group>> getAdminGroups() async {
+    final String? adminId = supabase.auth.currentUser?.id;
+    if (adminId == null) {
+      throw Exception('Admin user not logged in.');
+    }
+
+    final List<Map<String, dynamic>> response = await supabase
+        .from('groups')
+        .select()
+        .eq('admin_id', adminId);
+
+    return response.map((map) => Group.fromMap(map)).toList();
+  }
+
+  // دالة جديدة: الحصول على جميع المجموعات (للطالب والمدرس)
+  Future<List<Group>> getAllGroups() async {
+    // RLS تضمن أن المستخدمين الموثقين فقط يمكنهم الرؤية
+    final List<Map<String, dynamic>> response = await supabase
+        .from('groups')
+        .select()
+        .order('name', ascending: true);
+
+    return response.map((map) => Group.fromMap(map)).toList();
+  }
+
+  // دالة جديدة: جلب جميع الطلاب في مجموعة معينة
+  Future<List<Profile>> getStudentsInGroup(String groupId) async {
+    // جلب ملفات التعريف التي دورها طالب والمنضمة لهذه المجموعة
+    final List<Map<String, dynamic>> response = await supabase
+        .from('profiles')
+        .select()
+        .eq('role', 'student')
+        .eq('group_id', groupId);
+
+    return response.map((map) => Profile.fromMap(map)).toList();
+  }
+
+  // إنشاء مجموعة جديدة
+  Future<void> createGroup({required String name}) async {
+    final String? adminId = supabase.auth.currentUser?.id;
+    if (adminId == null) {
+      throw Exception('Admin user not logged in.');
+    }
+
+    final Group newGroup = Group(
+      id: '', // سيتم إنشاؤه في قاعدة البيانات
+      name: name,
+      adminId: adminId,
+    );
+
+    // استخدام toMap لتضمين admin_id
+    await supabase.from('groups').insert(newGroup.toMap());
+  }
+
+  // تعديل مجموعة موجودة
+  Future<void> updateGroup({
+    required String id,
+    required String newName,
+  }) async {
+    await supabase.from('groups').update({'name': newName}).eq('id', id);
+  }
+
+  // حذف مجموعة
+  Future<void> deleteGroup({required String id}) async {
+    await supabase.from('groups').delete().eq('id', id);
+  }
+}
+import '../../main.dart'; // للوصول إلى متغير supabase
+import '../models/student_progress.dart';
+
+class ProgressService {
+  // تسجيل إجابة الطالب (تقدم)
+  Future<void> recordAnswer({
+    required String questionId,
+    required bool isCorrect,
+  }) async {
+    final String? studentId = supabase.auth.currentUser?.id;
+    if (studentId == null) {
+      throw Exception('Student user not logged in.');
+    }
+
+    final newProgress = StudentProgress(
+      id: '',
+      studentId: studentId,
+      questionId: questionId,
+      isCorrect: isCorrect,
+      createdAt: DateTime.now(),
+    );
+
+    await supabase.from('student_progress').insert(newProgress.toInsertMap());
+  }
+
+  // --- دالات المدير (التي تستخدم في التقارير) ---
+
+  // دالة جديدة: جلب إحصائيات الأداء الكلية للطالب
+  Future<Map<String, dynamic>> getStudentPerformanceSummary(
+    String studentId,
+  ) async {
+    // جلب جميع محاولات الطالب
+    final List<Map<String, dynamic>> attempts = await supabase
+        .from('student_progress')
+        .select('is_correct, question_id')
+        .eq('student_id', studentId);
+
+    if (attempts.isEmpty) {
+      return {'total_attempts': 0, 'correct_count': 0, 'accuracy': 0.0};
+    }
+
+    final int totalAttempts = attempts.length;
+    // حساب عدد الإجابات الصحيحة
+    final int correctCount = attempts
+        .where((attempt) => attempt['is_correct'] == true)
+        .length;
+
+    final double accuracy = (correctCount / totalAttempts) * 100;
+
+    return {
+      'total_attempts': totalAttempts,
+      'correct_count': correctCount,
+      // تقريب الدقة إلى منزلتين عشريتين
+      'accuracy': double.parse(accuracy.toStringAsFixed(2)),
+    };
+  }
+
+  // جلب تقدم طالب معين في جميع الأسئلة
+  Future<List<StudentProgress>> getStudentProgress(String studentId) async {
+    final List<Map<String, dynamic>> response = await supabase
+        .from('student_progress')
+        .select()
+        .eq('student_id', studentId)
+        .order('created_at', ascending: false);
+
+    return response.map((map) => StudentProgress.fromMap(map)).toList();
+  }
+}
+import '../../main.dart'; // للوصول إلى متغير supabase
+import '../models/question.dart'; // للتأكد من استيراد نموذج السؤال
+
+class QuestionService {
+  // الحصول على جميع الأسئلة لمجموعة محددة
+  Future<List<Question>> getGroupQuestions(String groupId) async {
+    // جلب الأسئلة التي تطابق group_id المحدد
+    final List<Map<String, dynamic>> response = await supabase
+        .from('questions')
+        .select()
+        .eq('group_id', groupId)
+        .order('created_at', ascending: true); // ترتيب حسب الأقدم
+
+    return response.map((map) => Question.fromMap(map)).toList();
+  }
+
+  // إنشاء سؤال جديد
+  Future<void> createQuestion({
+    required String groupId,
+    required String questionText,
+    required int answer,
+  }) async {
+    final Question newQuestion = Question(
+      id: '', // يتم تجاهله عند الإدخال
+      groupId: groupId,
+      questionText: questionText,
+      answer: answer,
+    );
+
+    // نستخدم toInsertMap لإرسال البيانات المطلوبة لـ Supabase
+    await supabase.from('questions').insert(newQuestion.toInsertMap());
+  }
+
+  // تعديل سؤال موجود
+  Future<void> updateQuestion({
+    required String questionId,
+    required String questionText,
+    required int answer,
+  }) async {
+    // تحديث الأعمدة المحددة للسؤال الذي يطابق questionId
+    await supabase
+        .from('questions')
+        .update({'question_text': questionText, 'answer': answer})
+        .eq('id', questionId);
+  }
+
+  // حذف سؤال
+  Future<void> deleteQuestion(String questionId) async {
+    // حذف الصف الذي يطابق questionId
+    await supabase.from('questions').delete().eq('id', questionId);
+  }
+}
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../data/models/auth_state_model.dart';
+import 'admin/admin_home_screen.dart';
+import 'loading_screen.dart';
+import 'login_screen.dart';
+import 'student/student_home_screen.dart';
+
+class AuthGateScreen extends StatelessWidget {
+  const AuthGateScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final authState = context.watch<AuthStateModel>();
+
+    // إذا كانت حالة تحميل الجلسة الأولية لا تزال نشطة، اعرض شاشة التحميل.
+    if (authState.isLoadingSession) {
+      return const LoadingScreen();
+    }
+
+    if (!authState.isLoggedIn) {
+      // إذا لم يكن مسجل الدخول، انتقل إلى شاشة تسجيل الدخول
+      return const LoginScreen();
+    }
+
+    // إذا كان مسجل الدخول، توجه حسب الدور
+    if (authState.isAdmin) {
+      return const AdminHomeScreen();
+    } else if (authState.isStudent) {
+      return const StudentHomeScreen();
+    } else {
+      // حالة إذا كان مسجل الدخول ولكن الدور غير معروف (يحدث فقط إذا لم يتم التحميل بالكامل)
+      return const LoadingScreen();
+    }
+  }
+}
+import 'package:flutter/material.dart';
+
+class LoadingScreen extends StatelessWidget {
+  const LoadingScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 20),
+            Text('جاري التحميل...'),
+          ],
+        ),
+      ),
+    );
+  }
+}
+import 'package:flutter/material.dart';
+
+import '../../data/services/auth_service.dart';
+import 'register_screen.dart';
+
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final AuthService _authService = AuthService();
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  Future<void> _signIn() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    FocusScope.of(context).unfocus();
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      print('🔐 محاولة تسجيل الدخول للبريد: ${_emailController.text.trim()}');
+
+      await _authService.signIn(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+      print('✅ تم تسجيل الدخول بنجاح');
+
+      // ✅ تقليل وقت الانتظار من 500ms إلى 200ms
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      // AuthStateModel listener سيتولى التوجيه تلقائياً
+    } on Exception catch (e) {
+      print('❌ خطأ في تسجيل الدخول: $e');
+
+      if (mounted) {
+        String errorMsg = e.toString().replaceAll('Exception: ', '');
+
+        if (errorMsg.contains('Invalid login credentials')) {
+          errorMsg = 'البريد الإلكتروني أو كلمة المرور غير صحيحة';
+        } else if (errorMsg.contains('Email not confirmed')) {
+          errorMsg = 'يرجى تأكيد بريدك الإلكتروني أولاً';
+        } else if (errorMsg.contains('Invalid email')) {
+          errorMsg = 'البريد الإلكتروني غير صحيح';
+        }
+
+        setState(() {
+          _errorMessage = errorMsg;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMsg),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (error) {
+      print('❌ خطأ غير متوقع: $error');
+
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.';
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('خطأ: ${error.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('تسجيل الدخول'), centerTitle: true),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Icon(Icons.login, size: 80, color: Colors.blue),
+                const SizedBox(height: 20),
+
+                const Text(
+                  'مرحباً بك',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  'سجل دخولك للمتابعة',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                ),
+                const SizedBox(height: 40),
+
+                if (_errorMessage != null)
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.red.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.error_outline, color: Colors.red.shade700),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            _errorMessage!,
+                            style: TextStyle(color: Colors.red.shade700),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                TextFormField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  textDirection: TextDirection.ltr,
+                  enabled: !_isLoading,
+                  decoration: const InputDecoration(
+                    labelText: 'البريد الإلكتروني',
+                    hintText: 'example@email.com',
+                    prefixIcon: Icon(Icons.email),
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'الرجاء إدخال البريد الإلكتروني';
+                    }
+                    if (!value.contains('@')) {
+                      return 'الرجاء إدخال بريد إلكتروني صحيح';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                TextFormField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  textDirection: TextDirection.ltr,
+                  enabled: !_isLoading,
+                  decoration: const InputDecoration(
+                    labelText: 'كلمة المرور',
+                    hintText: '••••••',
+                    prefixIcon: Icon(Icons.lock),
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'الرجاء إدخال كلمة المرور';
+                    }
+                    if (value.length < 6) {
+                      return 'كلمة المرور يجب أن تكون 6 أحرف على الأقل';
+                    }
+                    return null;
+                  },
+                  onFieldSubmitted: (_) => _signIn(),
+                ),
+                const SizedBox(height: 32),
+
+                SizedBox(
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _signIn,
+                    style: ElevatedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text(
+                            'تسجيل الدخول',
+                            style: TextStyle(fontSize: 18),
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                TextButton(
+                  onPressed: _isLoading
+                      ? null
+                      : () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const RegisterScreen(),
+                            ),
+                          );
+                        },
+                  child: const Text(
+                    'ليس لديك حساب؟ تسجيل جديد',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+import 'package:flutter/material.dart';
+
+import '../../data/services/auth_service.dart';
+import 'login_screen.dart';
+
+class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
+
+  @override
+  State<RegisterScreen> createState() => _RegisterScreenState();
+}
+
+class _RegisterScreenState extends State<RegisterScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  final AuthService _authService = AuthService();
+
+  String _selectedRole = 'student';
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _register() async {
+    // التحقق من صحة النموذج
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    // إخفاء لوحة المفاتيح
+    FocusScope.of(context).unfocus();
+
+    setState(() => _isLoading = true);
+
+    try {
+      // التسجيل بدون groupId - الطالب سيختار المجموعة بعد تسجيل الدخول
+      await _authService.signUp(
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
+        role: _selectedRole,
+        groupId: null, // نمرر null دائماً
+      );
+
+      if (!mounted) return;
+
+      // عرض رسالة نجاح
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '✅ تم التسجيل بنجاح كـ ${_selectedRole == 'admin' ? 'مدير' : 'طالب'}!\n'
+            '${_selectedRole == 'student' ? 'يمكنك اختيار المجموعة بعد تسجيل الدخول.' : 'يمكنك الآن تسجيل الدخول وإنشاء المجموعات.'}',
+          ),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+
+      // الانتظار قليلاً ثم العودة لشاشة تسجيل الدخول
+      await Future.delayed(const Duration(milliseconds: 1500));
+
+      if (!mounted) return;
+
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      // استخراج رسالة الخطأ
+      String errorMessage = e.toString().replaceAll('Exception: ', '');
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('تسجيل حساب جديد'), centerTitle: true),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                // أيقونة تسجيل
+                const Icon(Icons.person_add, size: 80, color: Colors.blue),
+                const SizedBox(height: 20),
+
+                // حقل البريد الإلكتروني
+                TextFormField(
+                  controller: emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  textDirection: TextDirection.ltr,
+                  decoration: const InputDecoration(
+                    labelText: 'البريد الإلكتروني',
+                    hintText: 'example@email.com',
+                    prefixIcon: Icon(Icons.email),
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'الرجاء إدخال البريد الإلكتروني';
+                    }
+                    if (!value.contains('@') || !value.contains('.')) {
+                      return 'الرجاء إدخال بريد إلكتروني صحيح';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16.0),
+
+                // حقل كلمة المرور
+                TextFormField(
+                  controller: passwordController,
+                  obscureText: true,
+                  textDirection: TextDirection.ltr,
+                  decoration: const InputDecoration(
+                    labelText: 'كلمة المرور',
+                    hintText: 'يجب أن تكون 6 أحرف على الأقل',
+                    prefixIcon: Icon(Icons.lock),
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'الرجاء إدخال كلمة المرور';
+                    }
+                    if (value.length < 6) {
+                      return 'يجب أن تكون كلمة المرور 6 أحرف على الأقل';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 24.0),
+
+                // اختيار الدور
+                Card(
+                  elevation: 2,
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 8.0),
+                          child: Text(
+                            'التسجيل كـ:',
+                            style: TextStyle(
+                              fontSize: 16.0,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        RadioListTile<String>(
+                          title: const Text('طالب'),
+                          subtitle: const Text('للدخول وحل الأسئلة'),
+                          value: 'student',
+                          groupValue: _selectedRole,
+                          onChanged: _isLoading
+                              ? null
+                              : (value) {
+                                  setState(() => _selectedRole = value!);
+                                },
+                        ),
+                        RadioListTile<String>(
+                          title: const Text('مدير/مدرس'),
+                          subtitle: const Text('لإنشاء المجموعات والأسئلة'),
+                          value: 'admin',
+                          groupValue: _selectedRole,
+                          onChanged: _isLoading
+                              ? null
+                              : (value) {
+                                  setState(() => _selectedRole = value!);
+                                },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24.0),
+
+                // زر التسجيل
+                SizedBox(
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _register,
+                    style: ElevatedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text(
+                            'تسجيل حساب جديد',
+                            style: TextStyle(fontSize: 18),
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 16.0),
+
+                // زر الانتقال لتسجيل الدخول
+                TextButton(
+                  onPressed: _isLoading
+                      ? null
+                      : () {
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(
+                              builder: (context) => const LoginScreen(),
+                            ),
+                          );
+                        },
+                  child: const Text('لديك حساب بالفعل؟ تسجيل الدخول'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+import 'package:educational_app/presentation/screens/admin/student_progress_screen.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../../data/models/auth_state_model.dart';
+import 'group_management_screen.dart'; // سننشئها الآن // سننشئها لاحقا
+
+class AdminHomeScreen extends StatelessWidget {
+  const AdminHomeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('لوحة تحكم المدير'),
+        actions: [
+          // زر تسجيل الخروج
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () => context.read<AuthStateModel>().signOut(),
+          ),
+        ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // بطاقة إدارة المجموعات والأسئلة
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.group, size: 40, color: Colors.blue),
+                title: const Text('إدارة المجموعات والأسئلة'),
+                subtitle: const Text(
+                  'إنشاء، تعديل، وحذف المجموعات وإضافة أسئلة',
+                ),
+                trailing: const Icon(Icons.arrow_forward_ios),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const GroupManagementScreen(),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 10),
+            // بطاقة عرض الطلاب والتقدم
+            Card(
+              child: ListTile(
+                leading: const Icon(
+                  Icons.analytics,
+                  size: 40,
+                  color: Colors.green,
+                ),
+                title: const Text('متابعة تقدم الطلاب'),
+                subtitle: const Text('عرض الطلاب ومستوى تقدمهم في المجموعات'),
+                trailing: const Icon(Icons.arrow_forward_ios),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const StudentProgressScreen(),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+import 'package:educational_app/data/models/group.dart';
+import 'package:educational_app/presentation/screens/admin/question_management_screen.dart';
+import 'package:flutter/material.dart';
+
+import '../../../data/services/group_service.dart'; // سننشئها لاحقا
+
+class GroupManagementScreen extends StatefulWidget {
+  const GroupManagementScreen({super.key});
+
+  @override
+  State<GroupManagementScreen> createState() => _GroupManagementScreenState();
+}
+
+class _GroupManagementScreenState extends State<GroupManagementScreen> {
+  final GroupService _groupService = GroupService();
+  late Future<List<Group>> _groupsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _groupsFuture = _groupService.getAdminGroups();
+  }
+
+  // إعادة تحميل البيانات
+  void _reloadGroups() {
+    setState(() {
+      _groupsFuture = _groupService.getAdminGroups();
+    });
+  }
+
+  // فتح نموذج الإضافة أو التعديل
+  void _showGroupDialog({Group? group}) {
+    final isEditing = group != null;
+    final controller = TextEditingController(text: isEditing ? group.name : '');
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(isEditing ? 'تعديل المجموعة' : 'إضافة مجموعة جديدة'),
+          content: TextField(
+            controller: controller,
+            decoration: const InputDecoration(labelText: 'اسم المجموعة'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('إلغاء'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (controller.text.trim().isEmpty) return;
+
+                try {
+                  if (isEditing) {
+                    await _groupService.updateGroup(
+                      id: group.id,
+                      newName: controller.text.trim(),
+                    );
+                  } else {
+                    await _groupService.createGroup(
+                      name: controller.text.trim(),
+                    );
+                  }
+                  _reloadGroups();
+                  if (mounted) Navigator.of(context).pop();
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('خطأ في العملية: ${e.toString()}'),
+                      ),
+                    );
+                  }
+                }
+              },
+              child: Text(isEditing ? 'تعديل' : 'إضافة'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // تأكيد الحذف
+  void _deleteGroup(String groupId) async {
+    final bool? confirm = await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('تأكيد الحذف'),
+        content: const Text('هل أنت متأكد من حذف هذه المجموعة وجميع أسئلتها؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('إلغاء'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('حذف', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await _groupService.deleteGroup(id: groupId);
+        _reloadGroups();
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('فشل الحذف: ${e.toString()}')));
+        }
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('إدارة المجموعات')),
+      body: FutureBuilder<List<Group>>(
+        future: _groupsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(
+              child: Text('خطأ في تحميل المجموعات: ${snapshot.error}'),
+            );
+          }
+
+          final groups = snapshot.data ?? [];
+
+          if (groups.isEmpty) {
+            return const Center(child: Text('لم تقم بإنشاء أي مجموعات بعد.'));
+          }
+
+          return RefreshIndicator(
+            onRefresh: () async => _reloadGroups(),
+            child: ListView.builder(
+              padding: const EdgeInsets.all(10.0),
+              itemCount: groups.length,
+              itemBuilder: (context, index) {
+                final group = groups[index];
+                return Card(
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  child: ListTile(
+                    title: Text(
+                      group.name,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Text('ID: ${group.id.substring(0, 8)}...'),
+                    onTap: () {
+                      // **هنا يتم الانتقال إلى شاشة إدارة الأسئلة**
+                      Navigator.of(context)
+                          .push(
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  QuestionManagementScreen(group: group),
+                            ),
+                          )
+                          .then(
+                            (_) => _reloadGroups(),
+                          ); // إعادة تحميل بعد العودة
+                    },
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // زر التعديل
+                        IconButton(
+                          icon: const Icon(Icons.edit, color: Colors.blue),
+                          onPressed: () => _showGroupDialog(group: group),
+                        ),
+                        // زر الحذف
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () => _deleteGroup(group.id),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showGroupDialog(),
+        label: const Text('إضافة مجموعة'),
+        icon: const Icon(Icons.add),
+      ),
+    );
+  }
+}
+import 'package:flutter/material.dart';
+
+import '../../../data/models/group.dart';
+import '../../../data/models/profile.dart';
+import '../../../data/services/group_service.dart';
+import '../../../data/services/progress_service.dart';
+
+class GroupStudentListScreen extends StatefulWidget {
+  final Group group;
+  const GroupStudentListScreen({super.key, required this.group});
+
+  @override
+  State<GroupStudentListScreen> createState() => _GroupStudentListScreenState();
+}
+
+class _GroupStudentListScreenState extends State<GroupStudentListScreen> {
+  final GroupService _groupService = GroupService();
+  final ProgressService _progressService = ProgressService();
+  // لحفظ نتيجة جلب الطلاب في هذه المجموعة
+  late Future<List<Profile>> _studentsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    // جلب الطلاب المنضمين إلى المجموعة المحددة
+    _studentsFuture = _groupService.getStudentsInGroup(widget.group.id);
+  }
+
+  // دالة مساعدة لجلب الإحصائيات وعرضها في ListTile
+  Widget _buildStudentTile(Profile student) {
+    // نستخدم FutureBuilder داخليًا لجلب الإحصائيات لكل طالب بشكل مستقل
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _progressService.getStudentPerformanceSummary(student.id),
+      builder: (context, snapshot) {
+        String subtitleText = 'جاري تحميل التقدم...';
+        Widget trailingWidget = const SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        );
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          // حالة التحميل أثناء جلب الإحصائيات
+        } else if (snapshot.hasError) {
+          subtitleText = 'فشل تحميل التقدم';
+          trailingWidget = const Icon(Icons.error, color: Colors.red);
+        } else if (snapshot.hasData) {
+          final summary = snapshot.data!;
+          final total = summary['total_attempts'];
+          final accuracy = summary['accuracy'];
+
+          subtitleText = 'المحاولات: $total | الدقة: $accuracy%';
+          trailingWidget = Text(
+            '${accuracy.toStringAsFixed(0)}%',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              // تغيير اللون حسب مستوى الدقة
+              color: accuracy > 75
+                  ? Colors.green
+                  : accuracy > 50
+                  ? Colors.orange
+                  : Colors.red,
+            ),
+          );
+        }
+
+        return Card(
+          margin: const EdgeInsets.symmetric(vertical: 4),
+          child: ListTile(
+            title: Text(student.email),
+            subtitle: Text(subtitleText),
+            trailing: trailingWidget,
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('طلاب مجموعة: ${widget.group.name}')),
+      body: FutureBuilder<List<Profile>>(
+        future: _studentsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(
+              child: Text('خطأ في تحميل الطلاب: ${snapshot.error}'),
+            );
+          }
+
+          final students = snapshot.data ?? [];
+
+          if (students.isEmpty) {
+            return const Center(
+              child: Text('لم ينضم أي طالب لهذه المجموعة بعد.'),
+            );
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(10.0),
+            itemCount: students.length,
+            itemBuilder: (context, index) {
+              // لكل طالب، نقوم ببناء _buildStudentTile لجلب وعرض إحصائياته
+              return _buildStudentTile(students[index]);
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+import 'package:flutter/material.dart';
+
+import '../../../data/models/group.dart';
+import '../../../data/models/question.dart';
+import '../../../data/services/question_service.dart';
+
+class QuestionManagementScreen extends StatefulWidget {
+  final Group group;
+  const QuestionManagementScreen({super.key, required this.group});
+
+  @override
+  State<QuestionManagementScreen> createState() =>
+      _QuestionManagementScreenState();
+}
+
+class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
+  final QuestionService _questionService = QuestionService();
+  late Future<List<Question>> _questionsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _reloadQuestions();
+  }
+
+  // دالة لإعادة تحميل الأسئلة من Supabase
+  void _reloadQuestions() {
+    setState(() {
+      _questionsFuture = _questionService.getGroupQuestions(widget.group.id);
+    });
+  }
+
+  // فتح نموذج الإضافة أو التعديل
+  void _showQuestionDialog({Question? question}) {
+    final isEditing = question != null;
+    final textController = TextEditingController(
+      text: isEditing ? question.questionText : '',
+    );
+    final answerController = TextEditingController(
+      text: isEditing ? question.answer.toString() : '',
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(isEditing ? 'تعديل السؤال' : 'إضافة سؤال جديد'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: textController,
+                  decoration: const InputDecoration(
+                    labelText: 'نص السؤال (مثال: 5 * 7)',
+                  ),
+                  keyboardType: TextInputType.text,
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: answerController,
+                  decoration: const InputDecoration(
+                    labelText: 'الإجابة الصحيحة',
+                  ),
+                  keyboardType: TextInputType.number,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('إلغاء'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final String text = textController.text.trim();
+                final int? answer = int.tryParse(answerController.text.trim());
+
+                if (text.isEmpty || answer == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('الرجاء إدخال نص وإجابة صحيحة.'),
+                    ),
+                  );
+                  return;
+                }
+
+                try {
+                  if (isEditing) {
+                    // عملية التعديل
+                    await _questionService.updateQuestion(
+                      questionId: question.id,
+                      questionText: text,
+                      answer: answer,
+                    );
+                  } else {
+                    // عملية الإنشاء
+                    await _questionService.createQuestion(
+                      groupId: widget.group.id,
+                      questionText: text,
+                      answer: answer,
+                    );
+                  }
+                  _reloadQuestions(); // تحديث القائمة بعد العملية
+                  if (mounted) Navigator.of(context).pop();
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('خطأ في العملية: ${e.toString()}'),
+                      ),
+                    );
+                  }
+                }
+              },
+              child: Text(isEditing ? 'تعديل' : 'إضافة'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // دالة حذف السؤال
+  void _deleteQuestion(String questionId) async {
+    final bool? confirm = await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('تأكيد الحذف'),
+        content: const Text('هل أنت متأكد من حذف هذا السؤال؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('إلغاء'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('حذف', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await _questionService.deleteQuestion(questionId);
+        _reloadQuestions(); // تحديث القائمة بعد الحذف
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('فشل الحذف: ${e.toString()}')));
+        }
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('إدارة أسئلة: ${widget.group.name}')),
+      body: FutureBuilder<List<Question>>(
+        future: _questionsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(
+              child: Text('خطأ في تحميل الأسئلة: ${snapshot.error}'),
+            );
+          }
+
+          final questions = snapshot.data ?? [];
+
+          if (questions.isEmpty) {
+            return const Center(
+              child: Text('لم يتم إضافة أي أسئلة بعد لهذه المجموعة.'),
+            );
+          }
+
+          return RefreshIndicator(
+            onRefresh: () async => _reloadQuestions(),
+            child: ListView.builder(
+              padding: const EdgeInsets.all(10.0),
+              itemCount: questions.length,
+              itemBuilder: (context, index) {
+                final question = questions[index];
+                return Card(
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  child: ListTile(
+                    title: Text('السؤال: ${question.questionText}'),
+                    subtitle: Text('الإجابة الصحيحة: ${question.answer}'),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // زر التعديل
+                        IconButton(
+                          icon: const Icon(Icons.edit, color: Colors.blue),
+                          onPressed: () =>
+                              _showQuestionDialog(question: question),
+                        ),
+                        // زر الحذف
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () => _deleteQuestion(question.id),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showQuestionDialog(),
+        label: const Text('إضافة سؤال'),
+        icon: const Icon(Icons.add),
+      ),
+    );
+  }
+}
+import 'package:flutter/material.dart';
+
+import '../../../data/models/group.dart';
+import '../../../data/services/group_service.dart';
+import 'group_student_list_screen.dart'; // يتم استيراد الشاشة التالية لعرض الطلاب
+
+class StudentProgressScreen extends StatefulWidget {
+  const StudentProgressScreen({super.key});
+
+  @override
+  State<StudentProgressScreen> createState() => _StudentProgressScreenState();
+}
+
+class _StudentProgressScreenState extends State<StudentProgressScreen> {
+  final GroupService _groupService = GroupService();
+  // لحفظ نتيجة جلب المجموعات التي أنشأها المدرس
+  late Future<List<Group>> _groupsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    // جلب جميع المجموعات التي أنشأها المدرس
+    _groupsFuture = _groupService.getAdminGroups();
+  }
+
+  // دالة لإعادة تحميل البيانات
+  void _reloadGroups() {
+    setState(() {
+      _groupsFuture = _groupService.getAdminGroups();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('متابعة تقدم الطلاب')),
+      body: FutureBuilder<List<Group>>(
+        future: _groupsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(
+              child: Text('خطأ في تحميل المجموعات: ${snapshot.error}'),
+            );
+          }
+
+          final groups = snapshot.data ?? [];
+
+          if (groups.isEmpty) {
+            return const Center(
+              child: Text('لم تقم بإنشاء أي مجموعات بعد لتتابع الطلاب.'),
+            );
+          }
+
+          return RefreshIndicator(
+            onRefresh: () async => _reloadGroups(),
+            child: ListView.builder(
+              padding: const EdgeInsets.all(10.0),
+              itemCount: groups.length,
+              itemBuilder: (context, index) {
+                final group = groups[index];
+                return Card(
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  child: ListTile(
+                    leading: const Icon(Icons.people),
+                    title: Text(
+                      group.name,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: const Text('اضغط لعرض الطلاب المنضمين'),
+                    trailing: const Icon(Icons.arrow_forward_ios),
+                    onTap: () {
+                      // الانتقال إلى شاشة قائمة الطلاب في هذه المجموعة
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              GroupStudentListScreen(group: group),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+import 'package:flutter/material.dart';
+
+import '../../../data/models/group.dart';
+import '../../../data/services/auth_service.dart';
+import '../../../data/services/group_service.dart';
+
+class GroupSelectionScreen extends StatefulWidget {
+  const GroupSelectionScreen({super.key});
+
+  @override
+  State<GroupSelectionScreen> createState() => _GroupSelectionScreenState();
+}
+
+class _GroupSelectionScreenState extends State<GroupSelectionScreen> {
+  final GroupService _groupService = GroupService();
+  final AuthService _authService = AuthService();
+  late Future<List<Group>> _groupsFuture;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // الحصول على جميع المجموعات (RLS تسمح للطالب بالرؤية)
+    _groupsFuture = _loadAllGroups();
+  }
+
+  Future<List<Group>> _loadAllGroups() async {
+    // سنستخدم دالة عامة لجلب جميع المجموعات، ونفترض أن GroupService سيتولى ذلك
+    // ملاحظة: سنحتاج إلى إضافة دالة `getAllGroups()` إلى GroupService
+    return await _groupService.getAllGroups();
+  }
+
+  // دالة الانضمام للمجموعة
+  void _joinGroup(String groupId) async {
+    setState(() => _isLoading = true);
+    try {
+      await _authService.updateStudentGroup(groupId: groupId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم الانضمام إلى المجموعة بنجاح!')),
+        );
+        Navigator.of(context).pop(); // العودة للشاشة الرئيسية للطالب
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('فشل الانضمام: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('اختيار المجموعة')),
+      body: FutureBuilder<List<Group>>(
+        future: _groupsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(
+              child: Text('خطأ في تحميل المجموعات: ${snapshot.error}'),
+            );
+          }
+
+          final groups = snapshot.data ?? [];
+
+          if (groups.isEmpty) {
+            return const Center(child: Text('لا توجد مجموعات متاحة حاليًا.'));
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(10.0),
+            itemCount: groups.length,
+            itemBuilder: (context, index) {
+              final group = groups[index];
+              return Card(
+                margin: const EdgeInsets.symmetric(vertical: 8),
+                child: ListTile(
+                  title: Text(
+                    group.name,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text('ID: ${group.id.substring(0, 8)}...'),
+                  trailing: _isLoading
+                      ? const CircularProgressIndicator()
+                      : ElevatedButton(
+                          onPressed: () => _joinGroup(group.id),
+                          child: const Text('اخترها'),
+                        ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+import 'package:educational_app/data/services/question_service.dart';
+import 'package:flutter/material.dart';
+
+import '../../../data/models/question.dart';
+import '../../../data/services/progress_service.dart';
+
+class QuizScreen extends StatefulWidget {
+  final String groupId;
+  const QuizScreen({super.key, required this.groupId});
+
+  @override
+  State<QuizScreen> createState() => _QuizScreenState();
+}
+
+class _QuizScreenState extends State<QuizScreen> {
+  final QuestionService _questionService = QuestionService();
+  final ProgressService _progressService = ProgressService();
+  late Future<List<Question>> _questionsFuture;
+  final TextEditingController _answerController = TextEditingController();
+
+  List<Question> _questions = [];
+  int _currentQuestionIndex = 0;
+  bool _isAnswerSubmitted = false;
+  bool _isCorrect = false;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _questionsFuture = _loadQuestions();
+  }
+
+  Future<List<Question>> _loadQuestions() async {
+    final questions = await _questionService.getGroupQuestions(widget.groupId);
+    // خلط الأسئلة لعرضها بشكل عشوائي
+    questions.shuffle();
+    _questions = questions;
+    return questions;
+  }
+
+  void _submitAnswer() async {
+    final enteredAnswer = int.tryParse(_answerController.text.trim());
+    if (enteredAnswer == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('الرجاء إدخال رقم صحيح.')));
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    final currentQuestion = _questions[_currentQuestionIndex];
+    final isCorrect = enteredAnswer == currentQuestion.answer;
+
+    try {
+      // 1. تسجيل النتيجة في قاعدة البيانات
+      await _progressService.recordAnswer(
+        questionId: currentQuestion.id,
+        isCorrect: isCorrect,
+      );
+
+      // 2. تحديث الواجهة
+      setState(() {
+        _isAnswerSubmitted = true;
+        _isCorrect = isCorrect;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('خطأ في تسجيل الإجابة: ${e.toString()}')),
+        );
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _nextQuestion() {
+    _answerController.clear();
+    setState(() {
+      _isAnswerSubmitted = false;
+      // الانتقال للسؤال التالي أو العودة للأول عند الانتهاء
+      _currentQuestionIndex = (_currentQuestionIndex + 1) % _questions.length;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('حل الأسئلة')),
+      body: FutureBuilder<List<Question>>(
+        future: _questionsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(
+              child: Text('خطأ في تحميل الأسئلة: ${snapshot.error}'),
+            );
+          }
+
+          if (_questions.isEmpty) {
+            return const Center(
+              child: Text('لا توجد أسئلة متاحة في هذه المجموعة.'),
+            );
+          }
+
+          final currentQuestion = _questions[_currentQuestionIndex];
+
+          return Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'السؤال رقم ${_currentQuestionIndex + 1} من ${_questions.length}',
+                  style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                ),
+                const SizedBox(height: 30),
+                Text(
+                  currentQuestion.questionText,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 48,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 40),
+                TextField(
+                  controller: _answerController,
+                  decoration: const InputDecoration(
+                    labelText: 'أدخل الإجابة هنا',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.number,
+                  enabled: !_isAnswerSubmitted,
+                ),
+                const SizedBox(height: 30),
+                if (_isAnswerSubmitted)
+                  Column(
+                    children: [
+                      Text(
+                        _isCorrect
+                            ? 'إجابة صحيحة! 🎉'
+                            : 'إجابة خاطئة. 😔 الإجابة هي: ${currentQuestion.answer}',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: _isCorrect ? Colors.green : Colors.red,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: _nextQuestion,
+                        child: Text(
+                          _currentQuestionIndex == _questions.length - 1
+                              ? 'ابدأ من جديد'
+                              : 'السؤال التالي',
+                        ),
+                      ),
+                    ],
+                  )
+                else
+                  ElevatedButton(
+                    onPressed: _isLoading ? null : _submitAnswer,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                    ),
+                    child: _isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text(
+                            'تحقق من الإجابة',
+                            style: TextStyle(fontSize: 18),
+                          ),
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../../data/models/auth_state_model.dart';
+import '../../../data/models/profile.dart';
+import '../../../data/services/auth_service.dart';
+import 'group_selection_screen.dart';
+import 'quiz_screen.dart';
+
+class StudentHomeScreen extends StatefulWidget {
+  const StudentHomeScreen({super.key});
+
+  @override
+  State<StudentHomeScreen> createState() => _StudentHomeScreenState();
+}
+
+class _StudentHomeScreenState extends State<StudentHomeScreen> {
+  final AuthService _authService = AuthService();
+  late Future<Profile> _profileFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _profileFuture = _loadProfile();
+  }
+
+  // جلب ملف التعريف لتحديث الـ groupId
+  Future<Profile> _loadProfile() async {
+    final map = await _authService.getCurrentUserProfile();
+    return Profile.fromMap(map);
+  }
+
+  // دالة لإعادة تحميل الملف الشخصي
+  void _reloadProfile() {
+    setState(() {
+      _profileFuture = _loadProfile();
+    });
+    // **التعديل هنا:** استخدام الدالة العامة الجديدة
+    context.read<AuthStateModel>().reloadProfile();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('لوحة الطالب'),
+        actions: [
+          // زر تسجيل الخروج
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () => context.read<AuthStateModel>().signOut(),
+          ),
+        ],
+      ),
+      body: FutureBuilder<Profile>(
+        future: _profileFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(
+              child: Text('خطأ في تحميل الملف الشخصي: ${snapshot.error}'),
+            );
+          }
+
+          final profile = snapshot.data!;
+          final hasGroup = profile.groupId != null;
+
+          if (!hasGroup) {
+            // إذا لم يختر مجموعة، وجهه لصفحة الاختيار
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    'الرجاء اختيار مجموعة للبدء.',
+                    style: TextStyle(fontSize: 18),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () async {
+                      // الانتقال إلى شاشة اختيار المجموعة
+                      await Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const GroupSelectionScreen(),
+                        ),
+                      );
+                      _reloadProfile(); // إعادة تحميل بعد العودة للتأكد من اختيار المجموعة
+                    },
+                    child: const Text('اختيار مجموعة'),
+                  ),
+                ],
+              ),
+            );
+          } else {
+            // إذا اختار مجموعة، يمكنه بدء الاختبار
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    'مرحباً بك!',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'مجموعتك الحالية: ${profile.groupId}',
+                    style: const TextStyle(fontSize: 16),
+                  ), // سنستبدل الـ ID بالاسم لاحقاً
+                  const SizedBox(height: 30),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              QuizScreen(groupId: profile.groupId!),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.play_arrow),
+                    label: const Text(
+                      'ابدأ حل الأسئلة الآن',
+                      style: TextStyle(fontSize: 18),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 30,
+                        vertical: 15,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  TextButton(
+                    onPressed: () async {
+                      await Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const GroupSelectionScreen(),
+                        ),
+                      );
+                      _reloadProfile();
+                    },
+                    child: const Text('تغيير المجموعة'),
+                  ),
+                ],
+              ),
+            );
+          }
+        },
+      ),
+    );
+  }
+}

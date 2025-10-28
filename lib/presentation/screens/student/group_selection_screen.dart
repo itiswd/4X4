@@ -1,3 +1,4 @@
+import 'package:educational_app/main.dart';
 import 'package:flutter/material.dart';
 
 import '../../../data/models/group.dart';
@@ -13,7 +14,7 @@ class GroupSelectionScreen extends StatefulWidget {
 
 class _GroupSelectionScreenState extends State<GroupSelectionScreen> {
   final GroupService _groupService = GroupService();
-  final AuthService _authService = AuthService();
+  final AuthService _authService = AuthService(client: supabase);
   late Future<List<Group>> _groupsFuture;
   bool _isLoading = false;
 
