@@ -1,4 +1,5 @@
 import 'package:educational_app/data/services/question_service.dart';
+import 'package:educational_app/utils/responsive_utils.dart';
 import 'package:flutter/material.dart';
 
 import '../../../data/models/question.dart';
@@ -130,8 +131,11 @@ class _QuizScreenState extends State<QuizScreen> {
                 Text(
                   currentQuestion.questionText,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 48,
+                  style: TextStyle(
+                    fontSize: ResponsiveUtils.getResponsiveFontSize(
+                      context,
+                      48,
+                    ),
                     fontWeight: FontWeight.bold,
                   ),
                 ),

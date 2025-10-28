@@ -65,9 +65,21 @@ class _GroupStudentListScreenState extends State<GroupStudentListScreen> {
         }
 
         return Card(
-          margin: const EdgeInsets.symmetric(vertical: 4),
+          margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 0),
           child: ListTile(
-            title: Text(student.email),
+            leading: CircleAvatar(
+              backgroundColor: Theme.of(
+                context,
+              ).colorScheme.primary.withOpacity(0.1),
+              child: Icon(
+                Icons.person,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            title: Text(
+              student.fullName, // استخدم الاسم الكامل بدلاً من البريد
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
             subtitle: Text(subtitleText),
             trailing: trailingWidget,
           ),

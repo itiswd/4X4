@@ -3,6 +3,7 @@ import 'package:educational_app/data/models/group.dart';
 import 'package:educational_app/data/services/auth_service.dart';
 import 'package:educational_app/data/services/group_service.dart';
 import 'package:educational_app/main.dart';
+import 'package:educational_app/utils/responsive_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -178,222 +179,246 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('تسجيل حساب جديد')),
+      appBar: AppBar(
+        title: const Text(
+          'تسجيل حساب جديد',
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios),
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+        ),
+      ),
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Card(
-            elevation: 8,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+          padding: EdgeInsets.all(
+            ResponsiveUtils.getResponsivePadding(context),
+          ),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: ResponsiveUtils.getResponsiveCardWidth(context),
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(30.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      'إنشاء حساب جديد',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineMedium!
-                          .copyWith(
-                            fontWeight: FontWeight.bold,
+            child: Card(
+              elevation: 8,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(30.0),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        'إنشاء حساب جديد',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.headlineMedium!
+                            .copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                      ),
+                      const SizedBox(height: 30),
+
+                      // حقل الاسم الكامل
+                      TextFormField(
+                        controller: _fullNameController,
+                        keyboardType: TextInputType.name,
+                        enabled: !_isLoading,
+                        decoration: const InputDecoration(
+                          labelText: 'الاسم الكامل',
+                          prefixIcon: Icon(Icons.person),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'الرجاء إدخال اسمك الكامل';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 20),
+
+                      // حقول البريد الإلكتروني وكلمة المرور
+                      TextFormField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        textDirection: TextDirection.ltr,
+                        enabled: !_isLoading,
+                        decoration: const InputDecoration(
+                          labelText: 'البريد الإلكتروني',
+                          hintText: 'example@email.com',
+                          prefixIcon: Icon(Icons.email),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'الرجاء إدخال البريد الإلكتروني';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 20),
+
+                      TextFormField(
+                        controller: _passwordController,
+                        obscureText: !_isPasswordVisible,
+                        textDirection: TextDirection.ltr,
+                        enabled: !_isLoading,
+                        decoration: InputDecoration(
+                          labelText: 'كلمة المرور',
+                          hintText: '••••••',
+                          prefixIcon: const Icon(Icons.lock),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _isPasswordVisible
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _isPasswordVisible = !_isPasswordVisible;
+                              });
+                            },
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null ||
+                              value.isEmpty ||
+                              value.length < 6) {
+                            return 'كلمة المرور يجب أن تكون 6 أحرف على الأقل';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 30),
+
+                      // اختيار الدور
+                      DropdownButtonFormField<String>(
+                        decoration: const InputDecoration(
+                          labelText: 'نوع الحساب',
+                          prefixIcon: Icon(Icons.account_circle),
+                        ),
+                        initialValue: _selectedRole,
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'student',
+                            child: Text('طالب'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'admin',
+                            child: Text('مدرس / مسؤول'),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedRole = value;
+                            if (value == 'student' &&
+                                _availableGroups.isNotEmpty) {
+                              _selectedGroupId = _availableGroups.first.id;
+                            } else {
+                              _selectedGroupId = null;
+                            }
+                          });
+                        },
+                        validator: (value) {
+                          if (value == null) {
+                            return 'الرجاء اختيار نوع الحساب';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 20),
+
+                      // اختيار المجموعة (للطالب فقط)
+                      if (_selectedRole == 'student')
+                        _isGroupsLoading
+                            ? const Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(16.0),
+                                  child: CircularProgressIndicator(),
+                                ),
+                              )
+                            : _availableGroups.isEmpty
+                            ? Column(
+                                children: [
+                                  const Text(
+                                    'لا توجد مجموعات متاحة حالياً.',
+                                    style: TextStyle(color: Colors.red),
+                                  ),
+                                  TextButton.icon(
+                                    onPressed: _fetchGroupsForAnonymous,
+                                    icon: const Icon(Icons.refresh),
+                                    label: const Text('إعادة المحاولة'),
+                                  ),
+                                ],
+                              )
+                            : DropdownButtonFormField<String>(
+                                decoration: const InputDecoration(
+                                  labelText: 'اختيار المجموعة',
+                                  prefixIcon: Icon(Icons.group),
+                                ),
+                                initialValue: _selectedGroupId,
+                                items: _availableGroups.map((group) {
+                                  return DropdownMenuItem(
+                                    value: group.id,
+                                    child: Text(group.name),
+                                  );
+                                }).toList(),
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedGroupId = value;
+                                  });
+                                },
+                                validator: (value) {
+                                  if (_selectedRole == 'student' &&
+                                      value == null) {
+                                    return 'الرجاء اختيار المجموعة';
+                                  }
+                                  return null;
+                                },
+                              ),
+
+                      if (_selectedRole == 'student')
+                        const SizedBox(height: 20),
+
+                      // زر تسجيل الحساب
+                      ElevatedButton(
+                        onPressed: _isLoading ? null : _signUp,
+                        child: _isLoading
+                            ? SizedBox(
+                                height: 24,
+                                width: 24,
+                                child: CircularProgressIndicator(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onPrimary,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text('تسجيل الحساب'),
+                      ),
+
+                      const SizedBox(height: 15),
+
+                      TextButton(
+                        onPressed: _isLoading
+                            ? null
+                            : () {
+                                Navigator.of(context).pop();
+                              },
+                        child: Text(
+                          'هل لديك حساب بالفعل؟ تسجيل الدخول',
+                          style: TextStyle(
+                            fontSize: 15,
                             color: Theme.of(context).colorScheme.primary,
                           ),
-                    ),
-                    const SizedBox(height: 30),
-
-                    // حقل الاسم الكامل
-                    TextFormField(
-                      controller: _fullNameController,
-                      keyboardType: TextInputType.name,
-                      enabled: !_isLoading,
-                      decoration: const InputDecoration(
-                        labelText: 'الاسم الكامل',
-                        prefixIcon: Icon(Icons.person),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'الرجاء إدخال اسمك الكامل';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 20),
-
-                    // حقول البريد الإلكتروني وكلمة المرور
-                    TextFormField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      textDirection: TextDirection.ltr,
-                      enabled: !_isLoading,
-                      decoration: const InputDecoration(
-                        labelText: 'البريد الإلكتروني',
-                        hintText: 'example@email.com',
-                        prefixIcon: Icon(Icons.email),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'الرجاء إدخال البريد الإلكتروني';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 20),
-
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: !_isPasswordVisible,
-                      textDirection: TextDirection.ltr,
-                      enabled: !_isLoading,
-                      decoration: InputDecoration(
-                        labelText: 'كلمة المرور',
-                        hintText: '••••••',
-                        prefixIcon: const Icon(Icons.lock),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _isPasswordVisible
-                                ? Icons.visibility
-                                : Icons.visibility_off,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _isPasswordVisible = !_isPasswordVisible;
-                            });
-                          },
                         ),
                       ),
-                      validator: (value) {
-                        if (value == null ||
-                            value.isEmpty ||
-                            value.length < 6) {
-                          return 'كلمة المرور يجب أن تكون 6 أحرف على الأقل';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 30),
-
-                    // اختيار الدور
-                    DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(
-                        labelText: 'نوع الحساب',
-                        prefixIcon: Icon(Icons.account_circle),
-                      ),
-                      initialValue: _selectedRole,
-                      items: const [
-                        DropdownMenuItem(value: 'student', child: Text('طالب')),
-                        DropdownMenuItem(
-                          value: 'admin',
-                          child: Text('مدرس / مسؤول'),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedRole = value;
-                          if (value == 'student' &&
-                              _availableGroups.isNotEmpty) {
-                            _selectedGroupId = _availableGroups.first.id;
-                          } else {
-                            _selectedGroupId = null;
-                          }
-                        });
-                      },
-                      validator: (value) {
-                        if (value == null) {
-                          return 'الرجاء اختيار نوع الحساب';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 20),
-
-                    // اختيار المجموعة (للطالب فقط)
-                    if (_selectedRole == 'student')
-                      _isGroupsLoading
-                          ? const Center(
-                              child: Padding(
-                                padding: EdgeInsets.all(16.0),
-                                child: CircularProgressIndicator(),
-                              ),
-                            )
-                          : _availableGroups.isEmpty
-                          ? Column(
-                              children: [
-                                const Text(
-                                  'لا توجد مجموعات متاحة حالياً.',
-                                  style: TextStyle(color: Colors.red),
-                                ),
-                                TextButton.icon(
-                                  onPressed: _fetchGroupsForAnonymous,
-                                  icon: const Icon(Icons.refresh),
-                                  label: const Text('إعادة المحاولة'),
-                                ),
-                              ],
-                            )
-                          : DropdownButtonFormField<String>(
-                              decoration: const InputDecoration(
-                                labelText: 'اختيار المجموعة',
-                                prefixIcon: Icon(Icons.group),
-                              ),
-                              initialValue: _selectedGroupId,
-                              items: _availableGroups.map((group) {
-                                return DropdownMenuItem(
-                                  value: group.id,
-                                  child: Text(group.name),
-                                );
-                              }).toList(),
-                              onChanged: (value) {
-                                setState(() {
-                                  _selectedGroupId = value;
-                                });
-                              },
-                              validator: (value) {
-                                if (_selectedRole == 'student' &&
-                                    value == null) {
-                                  return 'الرجاء اختيار المجموعة';
-                                }
-                                return null;
-                              },
-                            ),
-
-                    if (_selectedRole == 'student') const SizedBox(height: 20),
-
-                    // زر تسجيل الحساب
-                    ElevatedButton(
-                      onPressed: _isLoading ? null : _signUp,
-                      child: _isLoading
-                          ? SizedBox(
-                              height: 24,
-                              width: 24,
-                              child: CircularProgressIndicator(
-                                color: Theme.of(context).colorScheme.onPrimary,
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : const Text('تسجيل الحساب'),
-                    ),
-
-                    const SizedBox(height: 15),
-
-                    TextButton(
-                      onPressed: _isLoading
-                          ? null
-                          : () {
-                              Navigator.of(context).pop();
-                            },
-                      child: Text(
-                        'هل لديك حساب بالفعل؟ تسجيل الدخول',
-                        style: TextStyle(
-                          fontSize: 15,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

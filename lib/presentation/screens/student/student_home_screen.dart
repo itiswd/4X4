@@ -114,14 +114,14 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          color: primaryColor.withOpacity(0.1),
+          color: primaryColor.withAlpha(5),
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'مرحباً بك، $fullName',
+                  'مرحباً بك، $fullName!',
                   style: Theme.of(context).textTheme.headlineSmall!.copyWith(
                     fontWeight: FontWeight.bold,
                     color: primaryColor,
@@ -130,12 +130,12 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Icon(Icons.group_rounded, color: secondaryColor, size: 24),
+                    Icon(Icons.group_rounded, color: primaryColor, size: 24),
                     const SizedBox(width: 8),
                     Text(
                       'مجموعتك الحالية: $displayGroupName',
                       style: const TextStyle(
-                        fontSize: 12,
+                        fontSize: 13,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -145,7 +145,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 40),
+        const SizedBox(height: 24),
 
         ElevatedButton.icon(
           onPressed: () {
@@ -168,8 +168,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
             shadowColor: secondaryColor.withOpacity(0.5),
           ),
         ),
-        const SizedBox(height: 20),
 
+        // const SizedBox(height: 12),
         TextButton.icon(
           onPressed: _handleRefresh,
           icon: const Icon(Icons.refresh_rounded),
