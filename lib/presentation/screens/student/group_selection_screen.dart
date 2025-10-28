@@ -58,7 +58,17 @@ class _GroupSelectionScreenState extends State<GroupSelectionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('اختيار المجموعة')),
+      appBar: AppBar(
+        title: const Text(
+          'اختيار المجموعة',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios),
+          onPressed: () => Navigator.of(context).pop(),
+          tooltip: 'العودة',
+        ),
+      ),
       body: FutureBuilder<List<Group>>(
         future: _groupsFuture,
         builder: (context, snapshot) {
@@ -94,7 +104,10 @@ class _GroupSelectionScreenState extends State<GroupSelectionScreen> {
                       ? const CircularProgressIndicator()
                       : ElevatedButton(
                           onPressed: () => _joinGroup(group.id),
-                          child: const Text('اخترها'),
+                          child: const Text(
+                            'اخترها',
+                            style: TextStyle(fontFamily: 'Cairo'),
+                          ),
                         ),
                 ),
               );

@@ -89,7 +89,12 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('تسجيل الدخول')),
+      appBar: AppBar(
+        title: const Text(
+          'تسجيل الدخول',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
+        ),
+      ),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -205,7 +210,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                 strokeWidth: 2,
                               ),
                             )
-                          : const Text('تسجيل الدخول'),
+                          : const Text(
+                              'تسجيل الدخول',
+                              style: TextStyle(fontFamily: 'Cairo'),
+                            ),
                     ),
 
                     const SizedBox(height: 15),

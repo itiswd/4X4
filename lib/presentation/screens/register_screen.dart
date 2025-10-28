@@ -87,7 +87,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('تسجيل حساب جديد')),
+      appBar: AppBar(
+        title: const Text(
+          'تسجيل حساب جديد',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios),
+          onPressed: () => Navigator.of(context).pop(),
+          tooltip: 'العودة',
+        ),
+      ),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -247,7 +257,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 strokeWidth: 2,
                               ),
                             )
-                          : const Text('إنشاء الحساب'),
+                          : const Text(
+                              'إنشاء الحساب',
+                              style: TextStyle(fontFamily: 'Cairo'),
+                            ),
                     ),
 
                     const SizedBox(height: 15.0),

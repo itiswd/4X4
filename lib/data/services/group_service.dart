@@ -3,6 +3,20 @@ import '../models/group.dart';
 import '../models/profile.dart'; // نحتاج لنموذج Profile لجلب الطلاب
 
 class GroupService {
+  // ✅ الدالة المفقودة: جلب اسم المجموعة باستخدام الـ ID. (مطلوبة لشاشة الطالب)
+  Future<String?> getGroupNameById(String groupId) async {
+    final response = await supabase
+        .from('groups') // افترض أن جدول المجموعات اسمه 'groups'
+        .select('name') // جلب حقل الاسم فقط
+        .eq('id', groupId)
+        .maybeSingle();
+
+    if (response != null && response['name'] is String) {
+      return response['name'] as String;
+    }
+    return null; // لا توجد مجموعة بهذا الـ ID
+  }
+
   // الحصول على جميع المجموعات التي أنشأها المدرس الحالي
   Future<List<Group>> getAdminGroups() async {
     final String? adminId = supabase.auth.currentUser?.id;
@@ -48,14 +62,16 @@ class GroupService {
       throw Exception('Admin user not logged in.');
     }
 
-    final Group newGroup = Group(
-      id: '', // سيتم إنشاؤه في قاعدة البيانات
-      name: name,
-      adminId: adminId,
-    );
+    // يجب أن تفترض أن Group نموذج يحتوي على دالة toMap
+    // لكن بما أن الكود لا يظهر نموذج Group، سنستخدم طريقة الإدراج المباشر
 
-    // استخدام toMap لتضمين admin_id
-    await supabase.from('groups').insert(newGroup.toMap());
+    // final Group newGroup = Group(
+    //   id: '', // سيتم إنشاؤه في قاعدة البيانات
+    //   name: name,
+    //   adminId: adminId,
+    // );
+
+    await supabase.from('groups').insert({'name': name, 'admin_id': adminId});
   }
 
   // تعديل مجموعة موجودة

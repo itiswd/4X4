@@ -86,7 +86,17 @@ class _QuizScreenState extends State<QuizScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('حل الأسئلة')),
+      appBar: AppBar(
+        title: const Text(
+          'حل الأسئلة',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios),
+          onPressed: () => Navigator.of(context).pop(),
+          tooltip: 'العودة',
+        ),
+      ),
       body: FutureBuilder<List<Question>>(
         future: _questionsFuture,
         builder: (context, snapshot) {
@@ -114,7 +124,7 @@ class _QuizScreenState extends State<QuizScreen> {
               children: [
                 Text(
                   'السؤال رقم ${_currentQuestionIndex + 1} من ${_questions.length}',
-                  style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                  style: TextStyle(fontSize: 16, color: Colors.grey[800]),
                 ),
                 const SizedBox(height: 30),
                 Text(
@@ -157,6 +167,7 @@ class _QuizScreenState extends State<QuizScreen> {
                           _currentQuestionIndex == _questions.length - 1
                               ? 'ابدأ من جديد'
                               : 'السؤال التالي',
+                          style: TextStyle(fontFamily: 'Cairo'),
                         ),
                       ),
                     ],
@@ -171,7 +182,7 @@ class _QuizScreenState extends State<QuizScreen> {
                         ? const CircularProgressIndicator(color: Colors.white)
                         : const Text(
                             'تحقق من الإجابة',
-                            style: TextStyle(fontSize: 18),
+                            style: TextStyle(fontSize: 18, fontFamily: 'Cairo'),
                           ),
                   ),
               ],

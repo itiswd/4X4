@@ -1,18 +1,78 @@
-// lib/presentation/screens/student/student_home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../data/models/auth_state_model.dart';
-// لا نحتاج لاستيراد Profile أو AuthService هنا لأننا نستخدم الـ Model مباشرة
+import '../../../data/services/group_service.dart';
 import '../loading_screen.dart';
 import 'group_selection_screen.dart';
 import 'quiz_screen.dart';
 
-// ✅ تحويل الشاشة إلى StatelessWidget للاعتماد على Provider بشكل كامل
-class StudentHomeScreen extends StatelessWidget {
+class StudentHomeScreen extends StatefulWidget {
   const StudentHomeScreen({super.key});
 
-  // دالة بناء الواجهة في حالة عدم وجود مجموعة
+  @override
+  State<StudentHomeScreen> createState() => _StudentHomeScreenState();
+}
+
+class _StudentHomeScreenState extends State<StudentHomeScreen> {
+  final GroupService _groupService = GroupService();
+  String? _groupName;
+  bool _isGroupDataLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // ✅ نبدأ بتحميل بيانات المجموعة فقط إذا كانت الشاشة لا تزال في شجرة الـ widgets
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadGroupData();
+    });
+  }
+
+  // ✅ دالة جديدة: لجلب اسم المجموعة باستخدام الـ ID
+  Future<void> _loadGroupData() async {
+    // يجب فحص mounted قبل استخدام context إذا كانت الدالة تُستدعى خارج initState
+    if (!mounted) return;
+
+    final authState = context.read<AuthStateModel>();
+    final groupId = authState.currentProfile?.groupId;
+
+    if (groupId != null) {
+      final name = await _groupService.getGroupNameById(groupId);
+
+      // ✅ فحص mounted قبل استخدام setState
+      if (mounted) {
+        setState(() {
+          _groupName = name;
+          _isGroupDataLoading = false;
+        });
+      }
+    } else {
+      // ✅ فحص mounted قبل استخدام setState
+      if (mounted) {
+        setState(() {
+          _groupName = null;
+          _isGroupDataLoading = false;
+        });
+      }
+    }
+  }
+
+  // ✅ دالة التحديث المخصصة للـ RefreshIndicator
+  Future<void> _handleRefresh() async {
+    // 1. تحديث ملف تعريف المستخدم
+    await context.read<AuthStateModel>().reloadProfile();
+
+    // ✅ فحص mounted قبل الاستمرار في تحديث الحالة المحلية
+    if (!mounted) return;
+
+    // 2. إعادة تحميل بيانات المجموعة بناءً على الـ ID الجديد
+    await _loadGroupData();
+  }
+
+  // -------------------------------------------------------------------
+  // دوال بناء الواجهة
+  // -------------------------------------------------------------------
+
   Widget _buildNoGroupState(BuildContext context) {
     return Column(
       children: [
@@ -35,15 +95,13 @@ class StudentHomeScreen extends StatelessWidget {
         const SizedBox(height: 30),
         ElevatedButton.icon(
           onPressed: () async {
-            // الانتقال لشاشة الاختيار
             await Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (context) => const GroupSelectionScreen(),
               ),
             );
-            // ✅ إعادة تحميل الملف الشخصي بعد العودة لتحديث الشاشة فوراً
             if (context.mounted) {
-              context.read<AuthStateModel>().reloadProfile();
+              await _handleRefresh(); // استخدام دالة التحديث الجديدة
             }
           },
           icon: const Icon(Icons.add_task_rounded),
@@ -58,15 +116,28 @@ class StudentHomeScreen extends StatelessWidget {
     );
   }
 
-  // دالة بناء الواجهة في حالة وجود مجموعة
   Widget _buildGroupSelectedState(BuildContext context, String groupId) {
     final primaryColor = Theme.of(context).colorScheme.primary;
     final secondaryColor = Theme.of(context).colorScheme.secondary;
 
+    // حالة التحميل أثناء جلب اسم المجموعة
+    if (_isGroupDataLoading) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.only(top: 50.0),
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    // اسم المجموعة المعروض
+    final displayGroupName =
+        _groupName ?? 'غير معروفة (${groupId.substring(0, 4)}...)';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // بطاقة المجموعة الحالية (UI احترافي)
+        // بطاقة المجموعة الحالية (عرض الاسم بدلاً من الـ ID)
         Card(
           elevation: 4,
           shape: RoundedRectangleBorder(
@@ -75,14 +146,15 @@ class StudentHomeScreen extends StatelessWidget {
           child: ListTile(
             leading: Icon(Icons.group_rounded, size: 40, color: secondaryColor),
             title: const Text(
-              'مجموعتك الحالية',
-              style: TextStyle(fontWeight: FontWeight.normal, fontSize: 14),
+              'مجموعتك الحالية:',
+              style: TextStyle(fontWeight: FontWeight.normal, fontSize: 15),
             ),
             subtitle: Text(
-              groupId, // نستخدم الـ ID حالياً، يمكن استبدالها بالاسم لاحقاً
+              displayGroupName, // ✅ عرض الاسم
               style: Theme.of(context).textTheme.headlineSmall!.copyWith(
                 fontWeight: FontWeight.bold,
                 color: primaryColor,
+                fontSize: 20,
               ),
             ),
             trailing: const Icon(Icons.check_circle, color: Colors.green),
@@ -90,7 +162,7 @@ class StudentHomeScreen extends StatelessWidget {
         ),
         const SizedBox(height: 40),
 
-        // زر بدء الاختبار (الزر الرئيسي والأكثر بروزاً)
+        // زر بدء الاختبار
         ElevatedButton.icon(
           onPressed: () {
             Navigator.of(context).push(
@@ -102,7 +174,11 @@ class StudentHomeScreen extends StatelessWidget {
           icon: const Icon(Icons.play_circle_filled_rounded, size: 28),
           label: const Text(
             'ابدأ حل الأسئلة الآن',
-            style: TextStyle(fontSize: 18),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'Cairo',
+            ),
           ),
           style: ElevatedButton.styleFrom(
             backgroundColor: secondaryColor,
@@ -122,9 +198,8 @@ class StudentHomeScreen extends StatelessWidget {
                 builder: (context) => const GroupSelectionScreen(),
               ),
             );
-            // ✅ إعادة تحميل الملف الشخصي
             if (context.mounted) {
-              context.read<AuthStateModel>().reloadProfile();
+              await _handleRefresh(); // استخدام دالة التحديث الجديدة
             }
           },
           icon: const Icon(Icons.shuffle_rounded),
@@ -137,11 +212,11 @@ class StudentHomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ مراقبة حالة المصادقة والملف الشخصي من الـ Model
+    // مراقبة حالة المصادقة والملف الشخصي من الـ Model
     final authState = context.watch<AuthStateModel>();
     final profile = authState.currentProfile;
 
-    // 1. معالجة حالة التحميل أو عدم وجود ملف شخصي
+    // 1. معالجة حالة التحميل
     if (profile == null || authState.isLoadingSession) {
       return const LoadingScreen();
     }
@@ -166,8 +241,7 @@ class StudentHomeScreen extends StatelessWidget {
       ),
       // 2. استخدام RefreshIndicator للتحميل اليدوي
       body: RefreshIndicator(
-        onRefresh: () =>
-            context.read<AuthStateModel>().reloadProfile(), // دالة التحديث
+        onRefresh: _handleRefresh, // ربط دالة التحديث الجديدة
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(24.0),
