@@ -154,7 +154,7 @@ class _GroupManagementScreenState extends State<GroupManagementScreen> {
                     ),
                     subtitle: Text('ID: ${group.id.substring(0, 8)}...'),
                     onTap: () {
-                      // للانتقال إلى شاشة إدارة الأسئلة
+                      // **هنا يتم الانتقال إلى شاشة إدارة الأسئلة**
                       Navigator.of(context)
                           .push(
                             MaterialPageRoute(
