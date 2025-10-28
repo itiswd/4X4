@@ -4,20 +4,25 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'config/app_theme.dart';
 import 'data/models/auth_state_model.dart';
 import 'presentation/screens/auth/auth_gate_screen.dart';
 
-// تعريف الـ URL والـ Key
+// 🔐 Supabase Configuration
+
 const supaBaseUrl = 'https://nopmggwpncgezhbiahhi.supabase.co';
 const supaBaseUrlAnon =
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vcG1nZ3dwbmNnZXpoYmlhaGhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE0OTY2MDUsImV4cCI6MjA3NzA3MjYwNX0.z2qgdfilN_Aj18Lyi4h4o-GDhySVQ2RfdnsVnrW-gsc';
 
-// تعريف متغير Supabase Client
+// Global Supabase Client
 final supabase = Supabase.instance.client;
+
+// 🚀 Main Entry Point
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Initialize Supabase
   await Supabase.initialize(url: supaBaseUrl, anonKey: supaBaseUrlAnon);
 
   runApp(
@@ -28,198 +33,27 @@ void main() async {
   );
 }
 
+// 🎨 Main App Widget
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // 🎨 الألوان الجديدة - مناسبة للأطفال
-    const Color primaryColor = Color(0xFF4CAF50); // أخضر مريح
-    const Color secondaryColor = Color(0xFFFF9800); // برتقالي دافئ
-    const Color errorColor = Color(0xFFEF5350);
-
     return ScreenUtilInit(
-      designSize: const Size(375, 812), // حجم التصميم الأساسي (iPhone X)
+      designSize: const Size(375, 812), // iPhone X base size
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (context, child) {
         return MaterialApp(
           title: 'التطبيق التعليمي',
           debugShowCheckedModeBanner: false,
-          theme: ThemeData(
-            useMaterial3: true,
-            fontFamily: 'Cairo',
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: primaryColor,
-              primary: primaryColor,
-              secondary: secondaryColor,
-              error: errorColor,
-              surface: Colors.white,
-              brightness: Brightness.light,
-            ),
 
-            // AppBar Theme
-            appBarTheme: const AppBarTheme(
-              centerTitle: true,
-              backgroundColor: primaryColor,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              iconTheme: IconThemeData(color: Colors.white),
-              titleTextStyle: TextStyle(
-                fontFamily: 'Cairo',
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-
-            // Card Theme
-            cardTheme: CardThemeData(
-              elevation: 3,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
-            ),
-
-            // Input Decoration Theme
-            inputDecorationTheme: InputDecorationTheme(
-              filled: true,
-              fillColor: Colors.grey.shade50,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey.shade300),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey.shade300),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: primaryColor, width: 2),
-              ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: errorColor, width: 1),
-              ),
-              focusedErrorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: errorColor, width: 2),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                vertical: 16,
-                horizontal: 20,
-              ),
-              labelStyle: TextStyle(
-                color: Colors.grey.shade700,
-                fontFamily: 'Cairo',
-              ),
-              hintStyle: TextStyle(
-                color: Colors.grey.shade400,
-                fontFamily: 'Cairo',
-              ),
-            ),
-
-            // Elevated Button Theme
-            elevatedButtonTheme: ElevatedButtonThemeData(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primaryColor,
-                foregroundColor: Colors.white,
-                elevation: 2,
-                shadowColor: primaryColor.withAlpha(77),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                padding: const EdgeInsets.symmetric(
-                  vertical: 16,
-                  horizontal: 24,
-                ),
-                textStyle: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  fontFamily: 'Cairo',
-                ),
-                minimumSize: const Size(double.infinity, 50),
-              ),
-            ),
-
-            // Text Button Theme
-            textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(
-                foregroundColor: primaryColor,
-                textStyle: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 15,
-                  fontFamily: 'Cairo',
-                ),
-                padding: const EdgeInsets.symmetric(
-                  vertical: 12,
-                  horizontal: 16,
-                ),
-              ),
-            ),
-
-            // Floating Action Button Theme
-            floatingActionButtonTheme: const FloatingActionButtonThemeData(
-              backgroundColor: secondaryColor,
-              foregroundColor: Colors.black87,
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(16)),
-              ),
-            ),
-
-            // Snackbar Theme
-            snackBarTheme: SnackBarThemeData(
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              backgroundColor: Colors.grey.shade800,
-              contentTextStyle: const TextStyle(
-                fontFamily: 'Cairo',
-                fontSize: 14,
-              ),
-            ),
-
-            // Dialog Theme
-            dialogTheme: DialogThemeData(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              elevation: 8,
-              titleTextStyle: const TextStyle(
-                fontFamily: 'Cairo',
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: primaryColor,
-              ),
-              contentTextStyle: TextStyle(
-                fontFamily: 'Cairo',
-                fontSize: 16,
-                color: Colors.grey.shade800,
-              ),
-            ),
-
-            // List Tile Theme
-            listTileTheme: ListTileThemeData(
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 8,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-
-            // Divider Theme
-            dividerTheme: DividerThemeData(
-              color: Colors.grey.shade300,
-              thickness: 1,
-              space: 20,
-            ),
-          ),
-
+          // ✨ استخدام الثيمات من ملف منفصل
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: ThemeMode.system, // يتبع إعدادات النظام
+          // 📱 إعدادات التطبيق
           builder: (context, child) {
             return Directionality(
               textDirection: TextDirection.rtl,
@@ -233,6 +67,8 @@ class MyApp extends StatelessWidget {
               ),
             );
           },
+
+          // 🏠 الشاشة الرئيسية
           home: const AuthGateScreen(),
         );
       },
