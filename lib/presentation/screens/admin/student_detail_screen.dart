@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:intl/date_symbol_data_local.dart'; // ✅ إضافة هذا الاستيراد
 import 'package:intl/intl.dart';
 
 import '../../../config/app_colors.dart';
@@ -20,11 +21,23 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
   final ProgressService _progressService = ProgressService();
   late Future<List<Map<String, dynamic>>> _attemptsFuture;
   Map<String, dynamic>? _summary;
+  bool _isDateFormatInitialized = false; // ✅ متغير لتتبع حالة التهيئة
 
   @override
   void initState() {
     super.initState();
+    _initializeDateFormatting(); // ✅ تهيئة بيانات التاريخ
     _loadData();
+  }
+
+  // ✅ دالة تهيئة بيانات التاريخ للغة العربية
+  Future<void> _initializeDateFormatting() async {
+    await initializeDateFormatting('ar', null);
+    if (mounted) {
+      setState(() {
+        _isDateFormatInitialized = true;
+      });
+    }
   }
 
   void _loadData() {
@@ -65,9 +78,19 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
   }
 
   String _formatDateTime(String dateTimeStr) {
-    final dateTime = DateTime.parse(dateTimeStr);
-    final formatter = DateFormat('yyyy/MM/dd - hh:mm a', 'ar');
-    return formatter.format(dateTime);
+    // ✅ فحص ما إذا كانت بيانات التاريخ جاهزة
+    if (!_isDateFormatInitialized) {
+      return dateTimeStr; // إرجاع النص الأصلي مؤقتاً
+    }
+
+    try {
+      final dateTime = DateTime.parse(dateTimeStr);
+      final formatter = DateFormat('yyyy/MM/dd - hh:mm a', 'ar');
+      return formatter.format(dateTime);
+    } catch (e) {
+      // في حالة حدوث خطأ، نرجع تنسيق بسيط
+      return DateTime.parse(dateTimeStr).toString().substring(0, 16);
+    }
   }
 
   @override
@@ -76,7 +99,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
       appBar: AppBar(
         title: Text(
           widget.student.fullName,
-          style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: 24.sp, fontWeight: FontWeight.bold),
         ),
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios, size: 20.sp),
@@ -100,7 +123,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
               SizedBox(height: 20.h),
 
               Text(
-                'سجل المحاولات',
+                'سجل المحاولات:',
                 style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold),
               ),
 
@@ -189,7 +212,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
                 color: _getAccuracyColor(accuracy).withAlpha(25),
                 border: Border.all(
                   color: _getAccuracyColor(accuracy),
-                  width: 4,
+                  width: 4.w,
                 ),
               ),
               child: Center(
@@ -221,7 +244,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
               children: [
                 _buildStatItem(
                   icon: Icons.assignment,
-                  label: 'المحاولات',
+                  label: 'عدد الأسئلة',
                   value: '$totalAttempts',
                   color: AppColors.accent,
                 ),
@@ -286,8 +309,8 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
         borderRadius: BorderRadius.circular(12.r),
         side: BorderSide(
           color: isCorrect
-              ? AppColors.success.withOpacity(0.3)
-              : AppColors.error.withOpacity(0.3),
+              ? AppColors.success.withAlpha(77)
+              : AppColors.error.withAlpha(77),
           width: 2,
         ),
       ),
@@ -306,8 +329,8 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
                   ),
                   decoration: BoxDecoration(
                     color: isCorrect
-                        ? AppColors.success.withOpacity(0.1)
-                        : AppColors.error.withOpacity(0.1),
+                        ? AppColors.success.withAlpha(25)
+                        : AppColors.error.withAlpha(25),
                     borderRadius: BorderRadius.circular(8.r),
                   ),
                   child: Row(
@@ -354,18 +377,18 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
                 color: AppColors.grey100,
                 borderRadius: BorderRadius.circular(8.r),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Text(
                     'السؤال:',
-                    style: TextStyle(fontSize: 12.sp, color: Colors.grey),
+                    style: TextStyle(fontSize: 16.sp, color: Colors.black),
                   ),
-                  SizedBox(height: 4.h),
+                  SizedBox(width: 24.w),
                   Text(
                     questionText,
                     style: TextStyle(
-                      fontSize: 18.sp,
+                      fontSize: 40.sp,
                       fontWeight: FontWeight.bold,
                     ),
                   ),

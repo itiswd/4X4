@@ -1,5 +1,6 @@
 // lib/presentation/screens/admin/admin_home_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 
 import '../../../data/models/auth_state_model.dart';
@@ -117,7 +118,7 @@ class AdminHomeScreen extends StatelessWidget {
                 fontSize: 22,
               ),
             ),
-            const SizedBox(height: 15),
+            SizedBox(height: 15.h),
 
             // قائمة الإجراءات
             ListView.separated(
@@ -141,10 +142,10 @@ class AdminHomeScreen extends StatelessWidget {
                         children: [
                           Icon(
                             action['icon'] as IconData,
-                            size: 35,
+                            size: 48.sp,
                             color: action['color'] as Color,
                           ),
-                          const SizedBox(width: 15),
+                          SizedBox(width: 12.w),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -154,17 +155,23 @@ class AdminHomeScreen extends StatelessWidget {
                                   style: Theme.of(context)
                                       .textTheme
                                       .titleMedium!
-                                      .copyWith(fontWeight: FontWeight.bold),
+                                      .copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16.sp,
+                                      ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   action['subtitle'] as String,
-                                  style: TextStyle(color: Colors.grey.shade600),
+                                  style: TextStyle(
+                                    color: Colors.grey.shade600,
+                                    fontSize: 10.sp,
+                                  ),
                                 ),
                               ],
                             ),
                           ),
-                          const Icon(Icons.arrow_forward_ios, size: 18),
+                          Icon(Icons.arrow_forward_ios, size: 24.sp),
                         ],
                       ),
                     ),

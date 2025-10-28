@@ -48,22 +48,21 @@ class _GroupStudentListScreenState extends State<GroupStudentListScreen> {
           final total = summary['total_attempts'];
           final accuracy = summary['accuracy'];
 
-          subtitleText = 'المحاولات: $total | الدقة: ${accuracy.toInt()}%';
+          subtitleText = 'عدد الاسئلة: $total \n الدقة: ${accuracy.toInt()}%';
 
           // أيقونة السهم للتفاصيل
           trailingWidget = Row(
             mainAxisSize: MainAxisSize.min,
+
             children: [
               Text(
                 '${accuracy.toStringAsFixed(0)}%',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: 20.sp,
+                  fontSize: 40.sp,
                   color: AppColors.getPerformanceColor(accuracy),
                 ),
               ),
-              SizedBox(width: 8.w),
-              Icon(Icons.arrow_forward_ios, size: 16.sp),
             ],
           );
         }
@@ -82,11 +81,11 @@ class _GroupStudentListScreenState extends State<GroupStudentListScreen> {
             leading: CircleAvatar(
               radius: 24.r,
               backgroundColor: AppColors.primary.withAlpha(32),
-              child: Icon(Icons.person, color: AppColors.primary, size: 24.sp),
+              child: Icon(Icons.person, color: AppColors.primary, size: 28.sp),
             ),
             title: Text(
               student.fullName,
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.sp),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22.sp),
             ),
             subtitle: Padding(
               padding: EdgeInsets.only(top: 4.h),
@@ -104,7 +103,7 @@ class _GroupStudentListScreenState extends State<GroupStudentListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'طلاب: ${widget.group.name}',
+          'طلاب ${widget.group.name}',
           style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold),
         ),
         leading: IconButton(

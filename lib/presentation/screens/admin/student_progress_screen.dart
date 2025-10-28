@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../data/models/group.dart';
 import '../../../data/services/group_service.dart';
@@ -33,7 +34,16 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('متابعة تقدم الطلاب')),
+      appBar: AppBar(
+        title: Text(
+          'متابعة تقدم الطلاب',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20.sp),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
       body: FutureBuilder<List<Group>>(
         future: _groupsFuture,
         builder: (context, snapshot) {
@@ -64,10 +74,13 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
                 return Card(
                   margin: const EdgeInsets.symmetric(vertical: 8),
                   child: ListTile(
-                    leading: const Icon(Icons.people),
+                    leading: Icon(Icons.people, size: 40.sp),
                     title: Text(
                       group.name,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18.sp,
+                      ),
                     ),
                     subtitle: const Text('اضغط لعرض الطلاب المنضمين'),
                     trailing: const Icon(Icons.arrow_forward_ios),
