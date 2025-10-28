@@ -151,7 +151,10 @@ class StudentHomeScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('لوحة تحكم الطالب'),
+        title: const Text(
+          'لوحة تحكم الطالب',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout_rounded),
