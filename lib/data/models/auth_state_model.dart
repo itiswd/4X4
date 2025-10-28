@@ -35,6 +35,8 @@ class AuthStateModel extends ChangeNotifier {
       final AuthChangeEvent event = data.event;
       final Session? session = data.session;
 
+      print('🔄 Auth Event: $event');
+
       _session = session;
 
       // تحديث حالة التحميل
@@ -46,13 +48,14 @@ class AuthStateModel extends ChangeNotifier {
       if (event == AuthChangeEvent.signedIn ||
           event == AuthChangeEvent.initialSession) {
         if (session != null) {
+          print('✅ Session found - User: ${session.user.email}');
           await _fetchUserProfile();
         }
       } else if (event == AuthChangeEvent.signedOut) {
+        print('👋 User signed out');
         _userRole = null;
       } else if (event == AuthChangeEvent.tokenRefreshed) {
-        // تحديث التوكن - لا حاجة لفعل شيء
-        debugPrint('Token refreshed');
+        print('🔄 Token refreshed');
       }
 
       notifyListeners();
@@ -62,19 +65,59 @@ class AuthStateModel extends ChangeNotifier {
   // جلب بيانات المستخدم من قاعدة البيانات
   Future<void> _fetchUserProfile() async {
     try {
+      print('📥 جلب الملف الشخصي...');
+
       final profileMap = await _authService.getCurrentUserProfile();
+
       _userRole = profileMap['role'] as String?;
 
-      if (_userRole == null) {
-        debugPrint('Warning: User role is null');
-      }
-    } catch (e) {
-      _userRole = null;
-      debugPrint('Error fetching user profile: $e');
+      print('✅ تم جلب الملف الشخصي - الدور: $_userRole');
 
-      // في حالة عدم وجود ملف شخصي، نسجل الخروج
-      if (e.toString().contains('الملف الشخصي غير موجود')) {
+      if (_userRole == null) {
+        debugPrint('⚠️ Warning: User role is null');
+        // لا نسجل الخروج، ربما الـ role لسه بيتم إنشاؤه
+        return;
+      }
+
+      // التحقق من صحة الدور
+      if (_userRole != 'admin' && _userRole != 'student') {
+        debugPrint('⚠️ Warning: Invalid user role: $_userRole');
+        _userRole = null;
         await signOut();
+        return;
+      }
+
+      print('✅ الدور صحيح: $_userRole');
+    } catch (e) {
+      print('❌ خطأ في جلب الملف الشخصي: $e');
+
+      _userRole = null;
+
+      // التحقق من نوع الخطأ
+      final errorString = e.toString();
+
+      if (errorString.contains('الملف الشخصي غير موجود')) {
+        debugPrint('❌ الملف الشخصي غير موجود - تسجيل الخروج');
+        await signOut();
+      } else if (errorString.contains('JWT')) {
+        // مشكلة في الـ Token - تسجيل الخروج
+        debugPrint('❌ مشكلة في الـ Token - تسجيل الخروج');
+        await signOut();
+      } else {
+        // أخطاء أخرى - نحاول مرة أخرى بعد ثانية
+        debugPrint('⚠️ خطأ مؤقت في جلب الملف الشخصي - سيتم إعادة المحاولة');
+
+        await Future.delayed(const Duration(seconds: 1));
+
+        // محاولة إعادة جلب الملف الشخصي مرة واحدة فقط
+        try {
+          final profileMap = await _authService.getCurrentUserProfile();
+          _userRole = profileMap['role'] as String?;
+          print('✅ تم جلب الملف الشخصي بنجاح في المحاولة الثانية');
+        } catch (retryError) {
+          print('❌ فشل في المحاولة الثانية: $retryError');
+          await signOut();
+        }
       }
     }
   }
@@ -82,12 +125,14 @@ class AuthStateModel extends ChangeNotifier {
   // تسجيل الخروج
   Future<void> signOut() async {
     try {
+      print('👋 تسجيل الخروج...');
       await _authService.signOut();
       _session = null;
       _userRole = null;
       notifyListeners();
+      print('✅ تم تسجيل الخروج بنجاح');
     } catch (e) {
-      debugPrint('Error during sign out: $e');
+      debugPrint('❌ خطأ أثناء تسجيل الخروج: $e');
       // في حالة فشل تسجيل الخروج، نعيد تعيين البيانات يدوياً
       _session = null;
       _userRole = null;
