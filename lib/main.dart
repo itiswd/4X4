@@ -1,5 +1,6 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -50,11 +51,37 @@ class MyApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
 
           // ✨ استخدام الثيمات من ملف منفصل
-          theme: AppTheme.lightTheme,
-          darkTheme: AppTheme.darkTheme,
+          theme: AppTheme.lightTheme.copyWith(
+            // 🎨 جعل خلفية Safe Area شفافة
+            scaffoldBackgroundColor:
+                AppTheme.lightTheme.scaffoldBackgroundColor,
+          ),
+          darkTheme: AppTheme.darkTheme.copyWith(
+            scaffoldBackgroundColor: AppTheme.darkTheme.scaffoldBackgroundColor,
+          ),
           themeMode: ThemeMode.system, // يتبع إعدادات النظام
           // 📱 إعدادات التطبيق
           builder: (context, child) {
+            // 🔧 تخصيص الـ System UI Overlay
+            SystemChrome.setSystemUIOverlayStyle(
+              SystemUiOverlayStyle(
+                statusBarColor: Colors.transparent, // شريط الحالة شفاف
+                statusBarIconBrightness:
+                    Theme.of(context).brightness == Brightness.dark
+                    ? Brightness.light
+                    : Brightness.dark,
+                systemNavigationBarColor:
+                    Colors.transparent, // شريط التنقل شفاف
+                systemNavigationBarIconBrightness:
+                    Theme.of(context).brightness == Brightness.dark
+                    ? Brightness.light
+                    : Brightness.dark,
+              ),
+            );
+
+            // 🎯 تفعيل وضع Edge-to-Edge
+            SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+
             return Directionality(
               textDirection: TextDirection.rtl,
               child: MediaQuery(

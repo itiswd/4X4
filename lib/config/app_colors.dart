@@ -51,7 +51,7 @@ class AppColors {
   // 🎭 ألوان الخلفيات
   static const Color backgroundLight = Color(0xFFFFFBF5); // خلفية كريمية فاتحة
   static const Color backgroundWhite = Color(0xFFFFFFFF);
-  static const Color cardBackground = Color(0xFFFFFFFF);
+  static const Color cardBackground = Color(0xFFFFFFFF); // أبيض نقي
 
   // 📝 ألوان النصوص
   static const Color textPrimary = Color(0xFF212121);
