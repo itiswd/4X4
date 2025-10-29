@@ -1,6 +1,9 @@
 // lib/presentation/screens/student/student_quizzes_list_screen.dart
+import 'package:educational_app/data/models/theme_provider.dart';
+import 'package:educational_app/presentation/screens/student/quiz_result_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
 
 import '../../../config/app_colors.dart';
 import '../../../data/models/quiz.dart';
@@ -33,6 +36,74 @@ class _StudentQuizzesListScreenState extends State<StudentQuizzesListScreen> {
     });
   }
 
+  // ✅ دالة لجلب إجابات الطالب في محاولة معينة
+  Future<Map<String, Map<String, dynamic>>> _getStudentAnswers(
+    String attemptId,
+  ) async {
+    try {
+      // جلب معلومات المحاولة
+      final attemptData = await supabase
+          .from('quiz_attempts')
+          .select('quiz_id, student_id')
+          .eq('id', attemptId)
+          .single();
+
+      final quizId = attemptData['quiz_id'] as String;
+      final studentId = attemptData['student_id'] as String;
+
+      // جلب أسئلة الكويز
+      final questionsData = await supabase
+          .from('questions')
+          .select('id, question_text, answer')
+          .eq('quiz_id', quizId)
+          .order('created_at', ascending: true);
+
+      final questions = questionsData as List<dynamic>;
+
+      // جلب إجابات الطالب
+      final progressData = await supabase
+          .from('student_progress')
+          .select('question_id, is_correct, student_answer')
+          .eq('student_id', studentId)
+          .inFilter(
+            'question_id',
+            questions.map((q) => q['id'] as String).toList(),
+          );
+
+      final progressList = progressData as List<dynamic>;
+
+      // إنشاء Map للإجابات
+      final Map<String, Map<String, dynamic>> answersMap = {};
+      final Map<String, Map<String, dynamic>> progressMap = {};
+
+      for (var p in progressList) {
+        progressMap[p['question_id'] as String] = {
+          'student_answer': p['student_answer'],
+          'is_correct': p['is_correct'],
+        };
+      }
+
+      for (var question in questions) {
+        final questionId = question['id'] as String;
+        final progress = progressMap[questionId];
+
+        if (progress != null) {
+          answersMap[questionId] = {
+            'question_text': question['question_text'] as String,
+            'correct_answer': question['answer'] as int,
+            'student_answer': progress['student_answer'] as int?,
+            'is_correct': progress['is_correct'] as bool,
+          };
+        }
+      }
+
+      return answersMap;
+    } catch (e) {
+      debugPrint('Error fetching student answers: $e');
+      return {};
+    }
+  }
+
   Widget _buildQuizCard(Quiz quiz) {
     return FutureBuilder<int>(
       future: _quizService.getQuizQuestionsCount(quiz.id),
@@ -45,7 +116,12 @@ class _StudentQuizzesListScreenState extends State<StudentQuizzesListScreen> {
           elevation: 4,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16.r),
-            side: BorderSide(color: AppColors.borderLight, width: 1),
+            side: BorderSide(
+              color: context.watch<ThemeProvider>().isDarkMode
+                  ? AppColors.grey900
+                  : AppColors.borderLight,
+              width: 1,
+            ),
           ),
           child: InkWell(
             onTap: questionCount > 0
@@ -116,14 +192,18 @@ class _StudentQuizzesListScreenState extends State<StudentQuizzesListScreen> {
                       width: double.infinity,
                       padding: EdgeInsets.all(12.w),
                       decoration: BoxDecoration(
-                        color: AppColors.grey100,
+                        color: context.watch<ThemeProvider>().isDarkMode
+                            ? AppColors.grey900
+                            : AppColors.grey50,
                         borderRadius: BorderRadius.circular(8.r),
                       ),
                       child: Text(
                         quiz.description!,
                         style: TextStyle(
                           fontSize: 14.sp,
-                          color: Colors.grey.shade700,
+                          color: context.watch<ThemeProvider>().isDarkMode
+                              ? AppColors.grey50
+                              : AppColors.grey900,
                         ),
                       ),
                     ),
@@ -189,7 +269,7 @@ class _StudentQuizzesListScreenState extends State<StudentQuizzesListScreen> {
                     ),
                   ),
 
-                  // عرض المحاولات السابقة
+                  // ✅ عرض المحاولات السابقة - قابل للضغط
                   FutureBuilder<List<dynamic>>(
                     future: supabase
                         .from('quiz_attempts')
@@ -202,40 +282,94 @@ class _StudentQuizzesListScreenState extends State<StudentQuizzesListScreen> {
                       if (attemptsSnapshot.hasData &&
                           attemptsSnapshot.data!.isNotEmpty) {
                         final lastAttempt = attemptsSnapshot.data!.first;
+                        final attemptId = lastAttempt['id'] as String;
                         final score = lastAttempt['score'] as int;
                         final total = lastAttempt['total_questions'] as int;
                         final percentage = (score / total) * 100;
 
-                        return Container(
-                          margin: EdgeInsets.only(top: 12.h),
-                          padding: EdgeInsets.all(12.w),
-                          decoration: BoxDecoration(
-                            color: AppColors.info.withAlpha(25),
-                            borderRadius: BorderRadius.circular(8.r),
-                            border: Border.all(
-                              color: AppColors.info.withAlpha(77),
-                              width: 1,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.history,
-                                size: 18.sp,
-                                color: AppColors.info,
+                        return InkWell(
+                          onTap: () async {
+                            // ✅ عرض مؤشر تحميل
+                            showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (context) => const Center(
+                                child: CircularProgressIndicator(),
                               ),
-                              SizedBox(width: 8.w),
-                              Expanded(
-                                child: Text(
-                                  'آخر محاولة: $score من $total (${percentage.toStringAsFixed(0)}%)',
-                                  style: TextStyle(
-                                    fontSize: 13.sp,
-                                    color: AppColors.info,
-                                    fontWeight: FontWeight.w600,
+                            );
+
+                            try {
+                              // جلب الإجابات
+                              final answers = await _getStudentAnswers(
+                                attemptId,
+                              );
+
+                              if (mounted) {
+                                // إغلاق مؤشر التحميل
+                                Navigator.pop(context);
+
+                                // الانتقال لصفحة النتائج
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => QuizResultScreen(
+                                      quiz: quiz,
+                                      score: score,
+                                      totalQuestions: total,
+                                      studentAnswers: answers,
+                                    ),
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                Navigator.pop(context);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('خطأ في تحميل النتائج: $e'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                          borderRadius: BorderRadius.circular(8.r),
+                          child: Container(
+                            margin: EdgeInsets.only(top: 12.h),
+                            padding: EdgeInsets.all(12.w),
+                            decoration: BoxDecoration(
+                              color: AppColors.info.withAlpha(25),
+                              borderRadius: BorderRadius.circular(8.r),
+                              border: Border.all(
+                                color: AppColors.info.withAlpha(77),
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.history,
+                                  size: 18.sp,
+                                  color: AppColors.info,
+                                ),
+                                SizedBox(width: 8.w),
+                                Expanded(
+                                  child: Text(
+                                    'آخر محاولة: $score من $total (${percentage.toStringAsFixed(0)}%)',
+                                    style: TextStyle(
+                                      fontSize: 13.sp,
+                                      color: AppColors.info,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
+                                Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 14.sp,
+                                  color: AppColors.info,
+                                ),
+                              ],
+                            ),
                           ),
                         );
                       }
@@ -323,7 +457,7 @@ class _StudentQuizzesListScreenState extends State<StudentQuizzesListScreen> {
           return RefreshIndicator(
             onRefresh: () async => _loadQuizzes(),
             child: ListView.builder(
-              padding: EdgeInsets.all(16.w),
+              padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 32.h),
               itemCount: quizzes.length,
               itemBuilder: (context, index) => _buildQuizCard(quizzes[index]),
             ),
