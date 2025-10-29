@@ -1,5 +1,6 @@
 // lib/presentation/screens/admin/quiz_management_screen.dart
 import 'package:educational_app/data/services/quiz_services.dart';
+import 'package:educational_app/presentation/screens/admin/quiz_questions_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 

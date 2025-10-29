@@ -1,6 +1,6 @@
 import 'package:educational_app/config/app_colors.dart';
 import 'package:educational_app/data/models/group.dart';
-import 'package:educational_app/presentation/screens/admin/question_management_screen.dart';
+import 'package:educational_app/presentation/screens/admin/quiz_management_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -153,8 +153,7 @@ class _GroupManagementScreenState extends State<GroupManagementScreen> {
               Navigator.of(context)
                   .push(
                     MaterialPageRoute(
-                      builder: (context) =>
-                          QuestionManagementScreen(group: group),
+                      builder: (context) => QuizManagementScreen(group: group),
                     ),
                   )
                   .then((_) => _reloadGroups());
@@ -199,6 +198,7 @@ class _GroupManagementScreenState extends State<GroupManagementScreen> {
                               ),
                             ),
                             SizedBox(height: 4.h),
+
                             Row(
                               children: [
                                 Icon(
@@ -283,7 +283,7 @@ class _GroupManagementScreenState extends State<GroupManagementScreen> {
                         ),
                         SizedBox(width: 8.w),
                         Text(
-                          'عرض وإدارة الأسئلة',
+                          'عرض وإدارة الكويزات',
                           style: TextStyle(
                             fontSize: 14.sp,
                             fontWeight: FontWeight.w600,
