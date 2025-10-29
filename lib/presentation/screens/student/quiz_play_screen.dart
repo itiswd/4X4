@@ -318,8 +318,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
                 ),
               ),
 
-              const Spacer(),
-
+              SizedBox(height: 16.0.h),
               // حقل الإجابة
               TextField(
                 controller: _answerController,
@@ -336,25 +335,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
                 onSubmitted: (_) =>
                     _nextQuestion(), // ✅ إضافة هذا للسماح بالضغط على Enter
               ),
-
-              const Spacer(),
-
-              // زر واحد فقط
-              ElevatedButton(
-                onPressed: _isSubmitting ? null : _nextQuestion,
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: 16.h),
-                ),
-                child: _isSubmitting
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : Text(
-                        _currentIndex < _questions.length - 1
-                            ? 'السؤال التالي'
-                            : 'إنهاء الكويز',
-                        style: TextStyle(fontSize: 18.sp),
-                      ),
-              ),
-              SizedBox(height: 20.h),
+              Spacer(),
             ],
           ),
         ),

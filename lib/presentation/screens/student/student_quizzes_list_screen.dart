@@ -226,7 +226,9 @@ class _StudentQuizzesListScreenState extends State<StudentQuizzesListScreen> {
                         style: TextStyle(
                           fontSize: 14.sp,
                           fontWeight: FontWeight.w600,
-                          color: Colors.grey.shade700,
+                          color: context.watch<ThemeProvider>().isDarkMode
+                              ? AppColors.grey50
+                              : AppColors.grey900,
                         ),
                       ),
                     ],

@@ -226,14 +226,24 @@ class _GroupManagementScreenState extends State<GroupManagementScreen> {
                                   Icon(
                                     Icons.people_outline,
                                     size: 14.sp,
-                                    color: Colors.grey.shade600,
+                                    color:
+                                        context
+                                            .watch<ThemeProvider>()
+                                            .isDarkMode
+                                        ? AppColors.grey50
+                                        : AppColors.grey900,
                                   ),
                                   SizedBox(width: 4.w),
                                   Text(
                                     '${stats['students']} ${stats['students'] == 1 ? 'طالب' : 'طلاب'}',
                                     style: TextStyle(
                                       fontSize: 13.sp,
-                                      color: Colors.grey.shade600,
+                                      color:
+                                          context
+                                              .watch<ThemeProvider>()
+                                              .isDarkMode
+                                          ? AppColors.grey50
+                                          : AppColors.grey900,
                                     ),
                                   ),
                                 ],
@@ -391,7 +401,12 @@ class _GroupManagementScreenState extends State<GroupManagementScreen> {
         ),
         Text(
           label,
-          style: TextStyle(fontSize: 12.sp, color: Colors.grey.shade600),
+          style: TextStyle(
+            fontSize: 12.sp,
+            color: context.watch<ThemeProvider>().isDarkMode
+                ? AppColors.grey50
+                : AppColors.grey900,
+          ),
         ),
       ],
     );

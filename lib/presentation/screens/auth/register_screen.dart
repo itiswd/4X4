@@ -408,7 +408,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 Navigator.of(context).pop();
                               },
                         child: Text(
-                          'هل لديك حساب بالفعل؟ تسجيل الدخول',
+                          'هل لديك حساب بالفعل؟\nتسجيل الدخول',
+                          textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 15,
                             color: Theme.of(context).colorScheme.primary,

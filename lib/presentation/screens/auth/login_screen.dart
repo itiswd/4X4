@@ -245,7 +245,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                 );
                               },
                         child: Text(
-                          'ليس لديك حساب؟ تسجيل جديد',
+                          'ليس لديك حساب؟\nتسجيل جديد',
+                          textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 15,
                             color: Theme.of(context).colorScheme.primary,
