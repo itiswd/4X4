@@ -117,27 +117,34 @@ class QuizService {
     final questions = <Question>[];
     final usedQuestions = <String>{};
 
+    // قائمة العمليات للنوع المنوع
+    final mixedOperations = [
+      OperationType.multiply,
+      OperationType.add,
+      OperationType.subtract,
+      OperationType.divide,
+    ];
+
     while (questions.length < count) {
       int num1, num2;
       String operation;
       int answer;
 
+      // اختيار العملية الفعلية
+      OperationType currentOperation = operationType;
       if (operationType == OperationType.mixed) {
-        // اختيار عملية عشوائية
-        final ops = [
-          OperationType.multiply,
-          OperationType.add,
-          OperationType.subtract,
-        ];
-        operationType = ops[random.nextInt(ops.length)];
+        currentOperation =
+            mixedOperations[random.nextInt(mixedOperations.length)];
       }
 
-      switch (operationType) {
+      switch (currentOperation) {
         case OperationType.multiply:
           if (tableNumber != null) {
+            // جدول محدد: tableNumber × (minRange to maxRange)
             num1 = tableNumber;
             num2 = random.nextInt(maxRange - minRange + 1) + minRange;
           } else {
+            // عشوائي
             num1 = random.nextInt(maxRange - minRange + 1) + minRange;
             num2 = random.nextInt(maxRange - minRange + 1) + minRange;
           }
@@ -146,28 +153,62 @@ class QuizService {
           break;
 
         case OperationType.add:
-          num1 = random.nextInt(maxRange - minRange + 1) + minRange;
-          num2 = random.nextInt(maxRange - minRange + 1) + minRange;
+          if (tableNumber != null) {
+            // جدول محدد: tableNumber + (minRange to maxRange)
+            num1 = tableNumber;
+            num2 = random.nextInt(maxRange - minRange + 1) + minRange;
+          } else {
+            // عشوائي
+            num1 = random.nextInt(maxRange - minRange + 1) + minRange;
+            num2 = random.nextInt(maxRange - minRange + 1) + minRange;
+          }
           operation = '+';
           answer = num1 + num2;
           break;
 
         case OperationType.subtract:
-          num1 = random.nextInt(maxRange - minRange + 1) + minRange;
-          num2 = random.nextInt(num1) + 1; // num2 أصغر من num1
+          if (tableNumber != null) {
+            // جدول محدد: tableNumber - (1 to maxRange)
+            num1 = tableNumber;
+            num2 = random.nextInt(min(maxRange, tableNumber)) + 1;
+          } else {
+            // عشوائي: num1 > num2 للحصول على نتائج موجبة
+            num1 = random.nextInt(maxRange - minRange + 1) + minRange;
+            num2 = random.nextInt(num1.clamp(1, maxRange)) + 1;
+          }
           operation = '-';
           answer = num1 - num2;
           break;
 
         case OperationType.divide:
-          // نختار answer الأول ثم نحسب num1
-          answer = random.nextInt(maxRange - minRange + 1) + minRange;
-          num2 = random.nextInt(9) + 2; // من 2 إلى 10
-          num1 = answer * num2;
+          if (tableNumber != null) {
+            // جدول محدد: tableNumber ÷ (1 to 12)
+            num1 = tableNumber;
+            // المقسوم عليه من 1 إلى 12 أو أقل من num1
+            final maxDivisor = min(12, num1);
+            num2 = random.nextInt(maxDivisor) + 1;
+
+            // التأكد من أن النتيجة صحيحة
+            if (num1 % num2 != 0) {
+              continue; // تجاهل إذا لم تكن القسمة صحيحة
+            }
+            answer = num1 ~/ num2;
+          } else {
+            // عشوائي: نختار الناتج أولاً ثم نحسب المقسوم
+            answer = random.nextInt(maxRange - minRange + 1) + minRange;
+            num2 = random.nextInt(min(10, maxRange)) + 2; // من 2 إلى 10
+            num1 = answer * num2;
+
+            // التأكد من أن num1 ضمن النطاق المعقول
+            if (num1 > maxRange * 2) {
+              continue; // تجاهل إذا كان num1 كبير جداً
+            }
+          }
           operation = '÷';
           break;
 
-        default:
+        case OperationType.mixed:
+          // لن يحدث لأننا نتعامل معه أعلاه
           continue;
       }
 

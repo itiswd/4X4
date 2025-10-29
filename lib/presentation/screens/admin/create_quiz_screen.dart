@@ -252,11 +252,20 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
 
                       SizedBox(height: 16.h),
 
-                      // جدول محدد (للضرب فقط)
-                      if (_selectedOperation == OperationType.multiply)
+                      // جدول محدد (لجميع العمليات)
+                      if (_selectedOperation != null &&
+                          _selectedOperation != OperationType.mixed)
                         CheckboxListTile(
                           title: const Text('استخدام جدول محدد'),
-                          subtitle: const Text('مثل: جدول 5'),
+                          subtitle: Text(
+                            _selectedOperation == OperationType.multiply
+                                ? 'مثال: جدول 5 (5×1، 5×2، ...)'
+                                : _selectedOperation == OperationType.add
+                                ? 'مثال: جدول 5 (5+1، 5+2، ...)'
+                                : _selectedOperation == OperationType.subtract
+                                ? 'مثال: جدول 10 (10-1، 10-2، ...)'
+                                : 'مثال: جدول 12 (12÷1، 12÷2، ...)',
+                          ),
                           value: _useSpecificTable,
                           onChanged: (value) {
                             setState(() => _useSpecificTable = value ?? false);
@@ -264,7 +273,8 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
                         ),
 
                       if (_useSpecificTable &&
-                          _selectedOperation == OperationType.multiply) ...[
+                          _selectedOperation != null &&
+                          _selectedOperation != OperationType.mixed) ...[
                         SizedBox(height: 12.h),
                         TextFormField(
                           controller: _tableNumberController,
@@ -274,9 +284,15 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
                             prefixIcon: Icon(Icons.numbers),
                           ),
                           keyboardType: TextInputType.number,
-                          validator: (v) => v?.isEmpty ?? true
-                              ? 'الرجاء إدخال رقم الجدول'
-                              : null,
+                          validator: (v) {
+                            if (v?.isEmpty ?? true)
+                              return 'الرجاء إدخال رقم الجدول';
+                            final num = int.tryParse(v!);
+                            if (num == null || num < 1 || num > 12) {
+                              return 'الرقم يجب أن يكون بين 1 و 12';
+                            }
+                            return null;
+                          },
                         ),
                       ],
 
