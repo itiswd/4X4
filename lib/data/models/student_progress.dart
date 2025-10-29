@@ -3,6 +3,7 @@ class StudentProgress {
   final String studentId;
   final String questionId;
   final bool isCorrect;
+  final int? studentAnswer; // ✅ الحقل الجديد
   final DateTime createdAt;
 
   StudentProgress({
@@ -10,6 +11,7 @@ class StudentProgress {
     required this.studentId,
     required this.questionId,
     required this.isCorrect,
+    this.studentAnswer, // ✅ إضافة هنا
     required this.createdAt,
   });
 
@@ -19,7 +21,7 @@ class StudentProgress {
       studentId: map['student_id'] as String,
       questionId: map['question_id'] as String,
       isCorrect: map['is_correct'] as bool,
-      // تحويل الـ timestamp إلى DateTime
+      studentAnswer: map['student_answer'] as int?, // ✅ قراءة القيمة
       createdAt: DateTime.parse(map['created_at'] as String),
     );
   }
@@ -30,7 +32,7 @@ class StudentProgress {
       'student_id': studentId,
       'question_id': questionId,
       'is_correct': isCorrect,
-      // Supabase سيتولى أمر created_at افتراضيًا
+      'student_answer': studentAnswer, // ✅ إرسال القيمة
     };
   }
 }

@@ -297,6 +297,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
   Widget _buildAttemptCard(Map<String, dynamic> attempt, int attemptNumber) {
     final isCorrect = attempt['is_correct'] as bool;
     final createdAt = attempt['created_at'] as String;
+    final studentAnswer = attempt['student_answer'] as int?; // ✅ جلب الإجابة
     final question = attempt['questions'];
 
     final questionText = question?['question_text'] ?? 'سؤال محذوف';
@@ -395,6 +396,36 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
                 ],
               ),
             ),
+
+            SizedBox(height: 8.h),
+
+            // ✅ إجابة الطالب
+            if (studentAnswer != null)
+              Row(
+                children: [
+                  Icon(
+                    Icons.person_outline,
+                    size: 16.sp,
+                    color: isCorrect ? AppColors.success : AppColors.error,
+                  ),
+                  SizedBox(width: 8.w),
+                  Text(
+                    'إجابة الطالب: ',
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                  Text(
+                    '$studentAnswer',
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.bold,
+                      color: isCorrect ? AppColors.success : AppColors.error,
+                    ),
+                  ),
+                ],
+              ),
 
             SizedBox(height: 8.h),
 

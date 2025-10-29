@@ -1,11 +1,12 @@
-import '../../main.dart'; // للوصول إلى متغير supabase
+import '../../main.dart';
 import '../models/student_progress.dart';
 
 class ProgressService {
-  // تسجيل إجابة الطالب (تقدم)
+  // ✅ تسجيل إجابة الطالب مع حفظ الإجابة نفسها
   Future<void> recordAnswer({
     required String questionId,
     required bool isCorrect,
+    required int studentAnswer, // ✅ إضافة المعامل الجديد
   }) async {
     final String? studentId = supabase.auth.currentUser?.id;
     if (studentId == null) {
@@ -17,19 +18,17 @@ class ProgressService {
       studentId: studentId,
       questionId: questionId,
       isCorrect: isCorrect,
+      studentAnswer: studentAnswer, // ✅ حفظ الإجابة
       createdAt: DateTime.now(),
     );
 
     await supabase.from('student_progress').insert(newProgress.toInsertMap());
   }
 
-  // --- دالات المدير (التي تستخدم في التقارير) ---
-
-  // دالة جديدة: جلب إحصائيات الأداء الكلية للطالب
+  // دالة جلب إحصائيات الأداء الكلية للطالب
   Future<Map<String, dynamic>> getStudentPerformanceSummary(
     String studentId,
   ) async {
-    // جلب جميع محاولات الطالب
     final List<Map<String, dynamic>> attempts = await supabase
         .from('student_progress')
         .select('is_correct, question_id')
@@ -40,7 +39,6 @@ class ProgressService {
     }
 
     final int totalAttempts = attempts.length;
-    // حساب عدد الإجابات الصحيحة
     final int correctCount = attempts
         .where((attempt) => attempt['is_correct'] == true)
         .length;
@@ -50,7 +48,6 @@ class ProgressService {
     return {
       'total_attempts': totalAttempts,
       'correct_count': correctCount,
-      // تقريب الدقة إلى منزلتين عشريتين
       'accuracy': double.parse(accuracy.toStringAsFixed(2)),
     };
   }

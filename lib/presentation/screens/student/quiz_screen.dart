@@ -53,13 +53,13 @@ class _QuizScreenState extends State<QuizScreen> {
     final isCorrect = enteredAnswer == currentQuestion.answer;
 
     try {
-      // 1. تسجيل النتيجة في قاعدة البيانات
+      // ✅ تسجيل النتيجة مع إجابة الطالب
       await _progressService.recordAnswer(
         questionId: currentQuestion.id,
         isCorrect: isCorrect,
+        studentAnswer: enteredAnswer, // ✅ إرسال الإجابة
       );
 
-      // 2. تحديث الواجهة
       setState(() {
         _isAnswerSubmitted = true;
         _isCorrect = isCorrect;
