@@ -1,4 +1,5 @@
 // lib/presentation/screens/student/student_home_screen.dart
+import 'package:educational_app/presentation/screens/student/student_quizzes_list_screen.dart';
 import 'package:educational_app/presentation/widgets/loading_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -6,7 +7,6 @@ import 'package:provider/provider.dart';
 
 import '../../../data/models/auth_state_model.dart';
 import '../../../data/services/group_service.dart';
-import 'quiz_screen.dart';
 
 class StudentHomeScreen extends StatefulWidget {
   const StudentHomeScreen({super.key});
@@ -145,24 +145,25 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
 
         SizedBox(height: 24.h),
 
+        // استبدل الزر الحالي بهذا:
         ElevatedButton.icon(
           onPressed: () {
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (context) => QuizScreen(groupId: groupId),
+                builder: (context) =>
+                    StudentQuizzesListScreen(groupId: groupId),
               ),
             );
           },
-          icon: Icon(Icons.play_circle_filled_rounded, size: 28.sp),
+          icon: Icon(Icons.quiz_rounded, size: 28.sp),
           label: Text(
-            'ابدأ حل الأسئلة الآن',
+            'عرض الكويزات المتاحة',
             style: TextStyle(fontSize: 18.sp),
           ),
           style: ElevatedButton.styleFrom(
             padding: EdgeInsets.symmetric(horizontal: 30.w, vertical: 15.h),
           ),
         ),
-
         // const SizedBox(height: 12),
         TextButton.icon(
           onPressed: _handleRefresh,

@@ -46,13 +46,19 @@ class AppTheme {
         toolbarHeight: 60,
       ),
 
-      // 🃏 البطاقات
+      // 🃏 البطاقات - نسخة احترافية
       cardTheme: CardThemeData(
-        elevation: 2,
-        shadowColor: AppColors.shadowLight,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 4,
+        shadowColor: Colors.black.withAlpha(40), // ظل أقوى
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: AppColors.grey300, // حدود أوضح قليلاً
+            width: 2,
+          ),
+        ),
         margin: const EdgeInsets.symmetric(vertical: 8),
-        color: AppColors.cardBackground,
+        color: AppColors.white,
       ),
 
       // 📝 حقول الإدخال

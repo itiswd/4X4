@@ -1,4 +1,6 @@
+// lib/data/services/progress_service.dart
 import '../../main.dart';
+import '../models/quiz_attempt.dart';
 import '../models/student_progress.dart';
 
 class ProgressService {
@@ -6,7 +8,7 @@ class ProgressService {
   Future<void> recordAnswer({
     required String questionId,
     required bool isCorrect,
-    required int studentAnswer, // ✅ إضافة المعامل الجديد
+    required int studentAnswer,
   }) async {
     final String? studentId = supabase.auth.currentUser?.id;
     if (studentId == null) {
@@ -18,11 +20,79 @@ class ProgressService {
       studentId: studentId,
       questionId: questionId,
       isCorrect: isCorrect,
-      studentAnswer: studentAnswer, // ✅ حفظ الإجابة
+      studentAnswer: studentAnswer,
       createdAt: DateTime.now(),
     );
 
     await supabase.from('student_progress').insert(newProgress.toInsertMap());
+  }
+
+  // ✅ حفظ محاولة كويز
+  Future<void> recordQuizAttempt({
+    required String quizId,
+    required int score,
+    required int totalQuestions,
+  }) async {
+    final studentId = supabase.auth.currentUser?.id;
+    if (studentId == null) throw Exception('Student not logged in');
+
+    final attempt = QuizAttempt(
+      id: '',
+      studentId: studentId,
+      quizId: quizId,
+      score: score,
+      totalQuestions: totalQuestions,
+      completedAt: DateTime.now(),
+    );
+
+    await supabase.from('quiz_attempts').insert(attempt.toInsertMap());
+  }
+
+  // ✅ جلب محاولات طالب في كويز معين
+  Future<List<QuizAttempt>> getStudentQuizAttempts(
+    String studentId,
+    String quizId,
+  ) async {
+    final response = await supabase
+        .from('quiz_attempts')
+        .select()
+        .eq('student_id', studentId)
+        .eq('quiz_id', quizId)
+        .order('completed_at', ascending: false);
+
+    return (response as List)
+        .map((map) => QuizAttempt.fromMap(map as Map<String, dynamic>))
+        .toList();
+  }
+
+  // ✅ جلب كل محاولات طالب
+  Future<List<Map<String, dynamic>>> getStudentAllQuizAttempts(
+    String studentId,
+  ) async {
+    final response = await supabase
+        .from('quiz_attempts')
+        .select('''
+          *,
+          quizzes(title, quiz_type, operation_type)
+        ''')
+        .eq('student_id', studentId)
+        .order('completed_at', ascending: false);
+
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+  // ✅ جلب محاولات كويز معين (لكل الطلاب)
+  Future<List<Map<String, dynamic>>> getQuizAttempts(String quizId) async {
+    final response = await supabase
+        .from('quiz_attempts')
+        .select('''
+          *,
+          profiles(full_name)
+        ''')
+        .eq('quiz_id', quizId)
+        .order('completed_at', ascending: false);
+
+    return List<Map<String, dynamic>>.from(response);
   }
 
   // دالة جلب إحصائيات الأداء الكلية للطالب
