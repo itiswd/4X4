@@ -59,7 +59,7 @@ class _QuizAttemptsScreenState extends State<QuizAttemptsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'محاولات: ${widget.quiz.title}',
+          'محاولات ${widget.quiz.title}',
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
         ),
         leading: IconButton(
@@ -142,7 +142,7 @@ class _QuizAttemptsScreenState extends State<QuizAttemptsScreen> {
           return RefreshIndicator(
             onRefresh: () async => _loadAttempts(),
             child: ListView.builder(
-              padding: EdgeInsets.all(16.w),
+              padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 24.h),
               itemCount: attempts.length,
               itemBuilder: (context, index) {
                 try {

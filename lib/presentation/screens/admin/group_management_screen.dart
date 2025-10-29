@@ -1,11 +1,11 @@
 import 'package:educational_app/config/app_colors.dart';
 import 'package:educational_app/data/models/group.dart';
+import 'package:educational_app/main.dart';
 import 'package:educational_app/presentation/screens/admin/quiz_management_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../data/services/group_service.dart';
-import '../../../data/services/question_service.dart';
 
 class GroupManagementScreen extends StatefulWidget {
   const GroupManagementScreen({super.key});
@@ -16,7 +16,6 @@ class GroupManagementScreen extends StatefulWidget {
 
 class _GroupManagementScreenState extends State<GroupManagementScreen> {
   final GroupService _groupService = GroupService();
-  final QuestionService _questionService = QuestionService();
   late Future<List<Group>> _groupsFuture;
 
   @override
@@ -134,12 +133,11 @@ class _GroupManagementScreenState extends State<GroupManagementScreen> {
   }
 
   Widget _buildGroupCard(Group group) {
-    return FutureBuilder<int>(
-      future: _questionService
-          .getGroupQuestions(group.id)
-          .then((q) => q.length),
+    return FutureBuilder<Map<String, int>>(
+      future: _getGroupStats(group.id),
       builder: (context, snapshot) {
-        final questionCount = snapshot.data ?? 0;
+        final stats =
+            snapshot.data ?? {'questions': 0, 'quizzes': 0, 'students': 0};
         final isLoading = snapshot.connectionState == ConnectionState.waiting;
 
         return Card(
@@ -171,14 +169,28 @@ class _GroupManagementScreenState extends State<GroupManagementScreen> {
                       Container(
                         padding: EdgeInsets.all(12.w),
                         decoration: BoxDecoration(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.primary.withAlpha(32),
+                          gradient: LinearGradient(
+                            colors: [
+                              Theme.of(context).colorScheme.primary,
+                              Theme.of(
+                                context,
+                              ).colorScheme.primary.withAlpha(179),
+                            ],
+                          ),
                           borderRadius: BorderRadius.circular(12.r),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.primary.withAlpha(64),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
                         child: Icon(
                           Icons.folder_rounded,
-                          color: Theme.of(context).colorScheme.primary,
+                          color: Colors.white,
                           size: 28.sp,
                         ),
                       ),
@@ -198,26 +210,32 @@ class _GroupManagementScreenState extends State<GroupManagementScreen> {
                               ),
                             ),
                             SizedBox(height: 4.h),
-
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.quiz_outlined,
-                                  size: 16.sp,
-                                  color: Colors.grey,
+                            if (isLoading)
+                              SizedBox(
+                                height: 16.h,
+                                width: 16.h,
+                                child: const CircularProgressIndicator(
+                                  strokeWidth: 1,
                                 ),
-                                SizedBox(width: 4.w),
-                                Text(
-                                  isLoading
-                                      ? 'جاري التحميل...'
-                                      : '$questionCount ${questionCount == 1 ? 'سؤال' : 'أسئلة'}',
-                                  style: TextStyle(
-                                    fontSize: 14.sp,
+                              )
+                            else
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.people_outline,
+                                    size: 14.sp,
                                     color: Colors.grey.shade600,
                                   ),
-                                ),
-                              ],
-                            ),
+                                  SizedBox(width: 4.w),
+                                  Text(
+                                    '${stats['students']} ${stats['students'] == 1 ? 'طالب' : 'طلاب'}',
+                                    style: TextStyle(
+                                      fontSize: 13.sp,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                ],
+                              ),
                           ],
                         ),
                       ),
@@ -258,19 +276,64 @@ class _GroupManagementScreenState extends State<GroupManagementScreen> {
                     ],
                   ),
 
+                  SizedBox(height: 16.h),
+
+                  // إحصائيات المجموعة
+                  Container(
+                    padding: EdgeInsets.all(12.w),
+                    decoration: BoxDecoration(
+                      color: AppColors.grey50,
+                      borderRadius: BorderRadius.circular(12.r),
+                      border: Border.all(
+                        color: AppColors.borderLight,
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        // عدد الكويزات
+                        Expanded(
+                          child: _buildStatItem(
+                            icon: Icons.quiz_rounded,
+                            label: 'كويز',
+                            value: stats['quizzes']!,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        Container(
+                          width: 1,
+                          height: 40.h,
+                          color: AppColors.borderLight,
+                        ),
+                        // عدد الأسئلة
+                        Expanded(
+                          child: _buildStatItem(
+                            icon: Icons.help_outline_rounded,
+                            label: 'سؤال',
+                            value: stats['questions']!,
+                            color: AppColors.secondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
                   SizedBox(height: 12.h),
 
-                  // زر الدخول للأسئلة
+                  // زر الدخول للكويزات
                   Container(
                     width: double.infinity,
                     padding: EdgeInsets.symmetric(
-                      vertical: 10.h,
+                      vertical: 12.h,
                       horizontal: 12.w,
                     ),
                     decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.primary.withAlpha(25),
+                      gradient: LinearGradient(
+                        colors: [
+                          Theme.of(context).colorScheme.primary.withAlpha(25),
+                          Theme.of(context).colorScheme.primary.withAlpha(51),
+                        ],
+                      ),
                       borderRadius: BorderRadius.circular(8.r),
                     ),
                     child: Row(
@@ -300,6 +363,67 @@ class _GroupManagementScreenState extends State<GroupManagementScreen> {
         );
       },
     );
+  }
+
+  Widget _buildStatItem({
+    required IconData icon,
+    required String label,
+    required int value,
+    required Color color,
+  }) {
+    return Column(
+      children: [
+        Icon(icon, size: 24.sp, color: color),
+        SizedBox(height: 4.h),
+        Text(
+          '$value',
+          style: TextStyle(
+            fontSize: 20.sp,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(fontSize: 12.sp, color: Colors.grey.shade600),
+        ),
+      ],
+    );
+  }
+
+  // ✅ دالة جلب إحصائيات المجموعة
+  Future<Map<String, int>> _getGroupStats(String groupId) async {
+    try {
+      // عدد الكويزات
+      final quizzesResponse = await supabase
+          .from('quizzes')
+          .select('id')
+          .eq('group_id', groupId);
+      final quizzesCount = (quizzesResponse as List).length;
+
+      // عدد الأسئلة
+      final questionsResponse = await supabase
+          .from('questions')
+          .select('id')
+          .eq('group_id', groupId);
+      final questionsCount = (questionsResponse as List).length;
+
+      // عدد الطلاب
+      final studentsResponse = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('role', 'student')
+          .eq('group_id', groupId);
+      final studentsCount = (studentsResponse as List).length;
+
+      return {
+        'quizzes': quizzesCount,
+        'questions': questionsCount,
+        'students': studentsCount,
+      };
+    } catch (e) {
+      return {'quizzes': 0, 'questions': 0, 'students': 0};
+    }
   }
 
   @override

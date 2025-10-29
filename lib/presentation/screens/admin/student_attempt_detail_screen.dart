@@ -110,7 +110,7 @@ class _StudentAttemptDetailScreenState
       appBar: AppBar(
         title: Text(
           'تفاصيل محاولة ${widget.studentName}',
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.sp),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios),
@@ -121,7 +121,7 @@ class _StudentAttemptDetailScreenState
         children: [
           // بطاقة النتيجة الإجمالية
           Container(
-            margin: EdgeInsets.all(16.w),
+            margin: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 0),
             padding: EdgeInsets.all(20.w),
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -130,7 +130,10 @@ class _StudentAttemptDetailScreenState
                   AppColors.getPerformanceColor(percentage).withAlpha(51),
                 ],
               ),
-              borderRadius: BorderRadius.circular(16.r),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(16.r),
+                topRight: Radius.circular(16.r),
+              ),
               border: Border.all(
                 color: AppColors.getPerformanceColor(percentage).withAlpha(77),
                 width: 2,
@@ -290,7 +293,10 @@ class _StudentAttemptDetailScreenState
                     final studentAnswer = answer['student_answer'] as int?;
 
                     return Card(
-                      margin: EdgeInsets.only(bottom: 12.h),
+                      margin: EdgeInsets.only(
+                        bottom: index == answers.length - 1 ? 36.h : 12.h,
+                        top: index == 0 ? 12.h : 0,
+                      ),
                       elevation: 2,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12.r),
