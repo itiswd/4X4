@@ -155,7 +155,7 @@ class _GroupStudentListScreenState extends State<GroupStudentListScreen> {
           }
 
           return ListView.builder(
-            padding: EdgeInsets.all(10.w),
+            padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 32.h),
             itemCount: students.length,
             itemBuilder: (context, index) {
               return _buildStudentTile(students[index]);

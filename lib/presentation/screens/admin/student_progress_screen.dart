@@ -67,7 +67,7 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
           return RefreshIndicator(
             onRefresh: () async => _reloadGroups(),
             child: ListView.builder(
-              padding: const EdgeInsets.all(10.0),
+              padding: EdgeInsets.fromLTRB(16.0.w, 10.h, 16.0.w, 32.0.h),
               itemCount: groups.length,
               itemBuilder: (context, index) {
                 final group = groups[index];

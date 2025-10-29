@@ -1,8 +1,10 @@
 // lib/presentation/screens/admin/student_detail_screen.dart
+import 'package:educational_app/data/models/theme_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 import '../../../config/app_colors.dart';
 import '../../../data/models/profile.dart';
@@ -114,7 +116,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
             }
 
             return ListView.builder(
-              padding: EdgeInsets.all(16.w),
+              padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 28.h),
               itemCount: attempts.length,
               itemBuilder: (context, index) {
                 final attempt = attempts[index];
@@ -231,7 +233,9 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
                             width: double.infinity,
                             padding: EdgeInsets.all(12.w),
                             decoration: BoxDecoration(
-                              color: AppColors.grey100,
+                              color: context.watch<ThemeProvider>().isDarkMode
+                                  ? AppColors.grey900
+                                  : AppColors.grey100,
                               borderRadius: BorderRadius.circular(8.r),
                             ),
                             child: Row(
@@ -249,6 +253,12 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
                                       'النتيجة: $score من $total',
                                       style: TextStyle(
                                         fontSize: 16.sp,
+                                        color:
+                                            context
+                                                .watch<ThemeProvider>()
+                                                .isDarkMode
+                                            ? AppColors.grey50
+                                            : AppColors.black,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
@@ -257,7 +267,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
                                 Icon(
                                   Icons.arrow_forward_ios,
                                   size: 16.sp,
-                                  color: AppColors.primary,
+                                  color: _getPerformanceColor(percentage),
                                 ),
                               ],
                             ),

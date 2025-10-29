@@ -101,9 +101,9 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'إنشاء كويز جديد',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20.sp),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios),
@@ -122,12 +122,19 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'نوع الكويز',
-                      style: TextStyle(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Icon(Icons.quiz, color: AppColors.primary, size: 24.sp),
+                        SizedBox(width: 8.w),
+                        Text(
+                          'نوع الكويز',
+                          style: TextStyle(
+                            fontSize: 18.sp,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
                     SizedBox(height: 12.h),
                     Row(
@@ -137,7 +144,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
                             type: QuizType.auto,
                             icon: Icons.auto_awesome,
                             title: 'تلقائي',
-                            subtitle: 'توليد أسئلة تلقائياً',
+                            subtitle: 'توليد أسئلة تلقائيًا',
                           ),
                         ),
                         SizedBox(width: 12.w),
@@ -156,8 +163,6 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
               ),
             ),
 
-            SizedBox(height: 16.h),
-
             // المعلومات الأساسية
             Card(
               child: Padding(
@@ -165,18 +170,30 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'معلومات الكويز',
-                      style: TextStyle(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          color: AppColors.secondary,
+                          size: 24.sp,
+                        ),
+                        SizedBox(width: 8.w),
+                        Text(
+                          'معلومات الكويز',
+                          style: TextStyle(
+                            fontSize: 18.sp,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
                     SizedBox(height: 12.h),
                     TextFormField(
                       controller: _titleController,
                       decoration: const InputDecoration(
                         labelText: 'عنوان الكويز',
+                        hintText: 'مثال: كويز جدول الضرب 5',
                         prefixIcon: Icon(Icons.title),
                       ),
                       validator: (v) =>
@@ -187,6 +204,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
                       controller: _descController,
                       decoration: const InputDecoration(
                         labelText: 'الوصف (اختياري)',
+                        hintText: 'وصف مختصر للكويز',
                         prefixIcon: Icon(Icons.description),
                       ),
                       maxLines: 2,
@@ -198,155 +216,303 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
 
             // إعدادات التوليد التلقائي
             if (_selectedType == QuizType.auto) ...[
-              SizedBox(height: 16.h),
               Card(
                 child: Padding(
                   padding: EdgeInsets.all(16.w),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'إعدادات التوليد',
-                        style: TextStyle(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(height: 12.h),
-
-                      // نوع العملية
-                      DropdownButtonFormField<OperationType>(
-                        decoration: const InputDecoration(
-                          labelText: 'نوع العملية',
-                          prefixIcon: Icon(Icons.calculate),
-                        ),
-                        initialValue: _selectedOperation,
-                        items: const [
-                          DropdownMenuItem(
-                            value: OperationType.multiply,
-                            child: Text('ضرب (×)'),
-                          ),
-                          DropdownMenuItem(
-                            value: OperationType.add,
-                            child: Text('جمع (+)'),
-                          ),
-                          DropdownMenuItem(
-                            value: OperationType.subtract,
-                            child: Text('طرح (-)'),
-                          ),
-                          DropdownMenuItem(
-                            value: OperationType.divide,
-                            child: Text('قسمة (÷)'),
-                          ),
-                          DropdownMenuItem(
-                            value: OperationType.mixed,
-                            child: Text('منوع'),
-                          ),
-                        ],
-                        onChanged: (value) {
-                          setState(() => _selectedOperation = value);
-                        },
-                        validator: (v) =>
-                            v == null ? 'الرجاء اختيار نوع العملية' : null,
-                      ),
-
-                      SizedBox(height: 16.h),
-
-                      // جدول محدد (لجميع العمليات)
-                      if (_selectedOperation != null &&
-                          _selectedOperation != OperationType.mixed)
-                        CheckboxListTile(
-                          title: const Text('استخدام جدول محدد'),
-                          subtitle: Text(
-                            _selectedOperation == OperationType.multiply
-                                ? 'مثال: جدول 5 (5×1، 5×2، ...)'
-                                : _selectedOperation == OperationType.add
-                                ? 'مثال: جدول 5 (5+1، 5+2، ...)'
-                                : _selectedOperation == OperationType.subtract
-                                ? 'مثال: جدول 10 (10-1، 10-2، ...)'
-                                : 'مثال: جدول 12 (12÷1، 12÷2، ...)',
-                          ),
-                          value: _useSpecificTable,
-                          onChanged: (value) {
-                            setState(() => _useSpecificTable = value ?? false);
-                          },
-                        ),
-
-                      if (_useSpecificTable &&
-                          _selectedOperation != null &&
-                          _selectedOperation != OperationType.mixed) ...[
-                        SizedBox(height: 12.h),
-                        TextFormField(
-                          controller: _tableNumberController,
-                          decoration: const InputDecoration(
-                            labelText: 'رقم الجدول',
-                            hintText: 'مثال: 5',
-                            prefixIcon: Icon(Icons.numbers),
-                          ),
-                          keyboardType: TextInputType.number,
-                          validator: (v) {
-                            if (v?.isEmpty ?? true)
-                              return 'الرجاء إدخال رقم الجدول';
-                            final num = int.tryParse(v!);
-                            if (num == null || num < 1 || num > 12) {
-                              return 'الرقم يجب أن يكون بين 1 و 12';
-                            }
-                            return null;
-                          },
-                        ),
-                      ],
-
-                      SizedBox(height: 16.h),
-
-                      // النطاق
                       Row(
                         children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: _minRangeController,
-                              decoration: const InputDecoration(
-                                labelText: 'من',
-                                prefixIcon: Icon(Icons.arrow_upward),
-                              ),
-                              keyboardType: TextInputType.number,
-                              validator: (v) =>
-                                  v?.isEmpty ?? true ? 'مطلوب' : null,
-                            ),
+                          Icon(
+                            Icons.settings,
+                            color: AppColors.accent,
+                            size: 24.sp,
                           ),
-                          SizedBox(width: 12.w),
-                          Expanded(
-                            child: TextFormField(
-                              controller: _maxRangeController,
-                              decoration: const InputDecoration(
-                                labelText: 'إلى',
-                                prefixIcon: Icon(Icons.arrow_downward),
-                              ),
-                              keyboardType: TextInputType.number,
-                              validator: (v) =>
-                                  v?.isEmpty ?? true ? 'مطلوب' : null,
+                          SizedBox(width: 8.w),
+                          Text(
+                            'إعدادات الأسئلة',
+                            style: TextStyle(
+                              fontSize: 18.sp,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ],
+                      ),
+                      SizedBox(height: 16.h),
+
+                      // نوع العملية
+                      Container(
+                        padding: EdgeInsets.all(12.w),
+                        decoration: BoxDecoration(
+                          color: AppColors.grey50,
+                          borderRadius: BorderRadius.circular(8.r),
+                          border: Border.all(color: AppColors.borderLight),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.calculate,
+                                  size: 20.sp,
+                                  color: AppColors.primary,
+                                ),
+                                SizedBox(width: 8.w),
+                                Text(
+                                  'نوع العملية الحسابية',
+                                  style: TextStyle(
+                                    fontSize: 14.sp,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 8.h),
+                            DropdownButtonFormField<OperationType>(
+                              decoration: const InputDecoration(
+                                hintText: 'اختر العملية',
+                                border: OutlineInputBorder(),
+                              ),
+                              initialValue: _selectedOperation,
+                              items: const [
+                                DropdownMenuItem(
+                                  value: OperationType.multiply,
+                                  child: Text('ضرب (×)'),
+                                ),
+                                DropdownMenuItem(
+                                  value: OperationType.add,
+                                  child: Text('جمع (+)'),
+                                ),
+                                DropdownMenuItem(
+                                  value: OperationType.subtract,
+                                  child: Text('طرح (-)'),
+                                ),
+                                DropdownMenuItem(
+                                  value: OperationType.divide,
+                                  child: Text('قسمة (÷)'),
+                                ),
+                                DropdownMenuItem(
+                                  value: OperationType.mixed,
+                                  child: Text('منوع (جميع العمليات)'),
+                                ),
+                              ],
+                              onChanged: (value) {
+                                setState(() => _selectedOperation = value);
+                              },
+                              validator: (v) => v == null
+                                  ? 'الرجاء اختيار نوع العملية'
+                                  : null,
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      SizedBox(height: 16.h),
+
+                      // جدول محدد
+                      if (_selectedOperation != null &&
+                          _selectedOperation != OperationType.mixed)
+                        Container(
+                          padding: EdgeInsets.all(12.w),
+                          decoration: BoxDecoration(
+                            color: AppColors.grey50,
+                            borderRadius: BorderRadius.circular(8.r),
+                            border: Border.all(color: AppColors.borderLight),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              CheckboxListTile(
+                                contentPadding: EdgeInsets.zero,
+                                title: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.table_chart,
+                                      size: 20.sp,
+                                      color: AppColors.primary,
+                                    ),
+                                    SizedBox(width: 8.w),
+                                    const Text('استخدام جدول محدد'),
+                                  ],
+                                ),
+                                subtitle: Padding(
+                                  padding: EdgeInsets.only(
+                                    right: 28.w,
+                                    top: 4.h,
+                                  ),
+                                  child: Text(
+                                    _getTableExampleText(),
+                                    style: TextStyle(
+                                      fontSize: 12.sp,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                ),
+                                value: _useSpecificTable,
+                                onChanged: (value) {
+                                  setState(
+                                    () => _useSpecificTable = value ?? false,
+                                  );
+                                },
+                              ),
+                              if (_useSpecificTable) ...[
+                                SizedBox(height: 8.h),
+                                TextFormField(
+                                  controller: _tableNumberController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'رقم الجدول',
+                                    hintText: 'أدخل رقم من 1 إلى 12',
+                                    prefixIcon: Icon(Icons.numbers),
+                                  ),
+                                  keyboardType: TextInputType.number,
+                                  validator: (v) {
+                                    if (v?.isEmpty ?? true)
+                                      return 'الرجاء إدخال رقم الجدول';
+                                    final num = int.tryParse(v!);
+                                    if (num == null || num < 1 || num > 12) {
+                                      return 'الرقم يجب أن يكون بين 1 و 12';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+
+                      SizedBox(height: 16.h),
+
+                      // نطاق الأرقام - مبسط ومع شرح
+                      Container(
+                        padding: EdgeInsets.all(12.w),
+                        decoration: BoxDecoration(
+                          color: AppColors.grey50,
+                          borderRadius: BorderRadius.circular(8.r),
+                          border: Border.all(color: AppColors.borderLight),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.numbers,
+                                  size: 20.sp,
+                                  color: AppColors.primary,
+                                ),
+                                SizedBox(width: 8.w),
+                                Text(
+                                  'نطاق الأرقام المستخدمة',
+                                  style: TextStyle(
+                                    fontSize: 14.sp,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 4.h),
+                            Text(
+                              _getRangeExplanation(),
+                              style: TextStyle(
+                                fontSize: 12.sp,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                            SizedBox(height: 12.h),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: _minRangeController,
+                                    decoration: const InputDecoration(
+                                      labelText: 'من',
+                                      hintText: '1',
+                                      prefixIcon: Icon(Icons.arrow_upward),
+                                    ),
+                                    keyboardType: TextInputType.number,
+                                    validator: (v) =>
+                                        v?.isEmpty ?? true ? 'مطلوب' : null,
+                                  ),
+                                ),
+                                SizedBox(width: 12.w),
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: _maxRangeController,
+                                    decoration: const InputDecoration(
+                                      labelText: 'إلى',
+                                      hintText: '10',
+                                      prefixIcon: Icon(Icons.arrow_downward),
+                                    ),
+                                    keyboardType: TextInputType.number,
+                                    validator: (v) =>
+                                        v?.isEmpty ?? true ? 'مطلوب' : null,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
 
                       SizedBox(height: 16.h),
 
                       // عدد الأسئلة
-                      TextFormField(
-                        controller: _questionsCountController,
-                        decoration: const InputDecoration(
-                          labelText: 'عدد الأسئلة',
-                          prefixIcon: Icon(Icons.numbers),
+                      Container(
+                        padding: EdgeInsets.all(12.w),
+                        decoration: BoxDecoration(
+                          color: AppColors.grey50,
+                          borderRadius: BorderRadius.circular(8.r),
+                          border: Border.all(color: AppColors.borderLight),
                         ),
-                        keyboardType: TextInputType.number,
-                        validator: (v) {
-                          if (v?.isEmpty ?? true) return 'مطلوب';
-                          final num = int.tryParse(v!);
-                          if (num == null || num < 1) {
-                            return 'يجب أن يكون أكبر من 0';
-                          }
-                          return null;
-                        },
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.format_list_numbered,
+                                  size: 20.sp,
+                                  color: AppColors.primary,
+                                ),
+                                SizedBox(width: 8.w),
+                                Text(
+                                  'عدد الأسئلة',
+                                  style: TextStyle(
+                                    fontSize: 14.sp,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 4.h),
+                            Text(
+                              'كم سؤال تريد في الكويز؟',
+                              style: TextStyle(
+                                fontSize: 12.sp,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                            SizedBox(height: 12.h),
+                            TextFormField(
+                              controller: _questionsCountController,
+                              decoration: const InputDecoration(
+                                hintText: 'مثال: 10',
+                                prefixIcon: Icon(Icons.numbers),
+                              ),
+                              keyboardType: TextInputType.number,
+                              validator: (v) {
+                                if (v?.isEmpty ?? true) return 'مطلوب';
+                                final num = int.tryParse(v!);
+                                if (num == null || num < 1) {
+                                  return 'يجب أن يكون أكبر من 0';
+                                }
+                                return null;
+                              },
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -354,22 +520,63 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
               ),
             ],
 
-            SizedBox(height: 24.h),
+            SizedBox(height: 12.h),
 
             // زر الإنشاء
-            ElevatedButton(
+            ElevatedButton.icon(
               onPressed: _isLoading ? null : _createQuiz,
+              icon: Icon(
+                _isLoading ? Icons.hourglass_empty : Icons.add_circle,
+                size: 24.sp,
+              ),
+              label: Text(
+                _isLoading ? 'جاري الإنشاء...' : 'إنشاء الكويز',
+                style: TextStyle(fontSize: 18.sp),
+              ),
               style: ElevatedButton.styleFrom(
                 padding: EdgeInsets.symmetric(vertical: 16.h),
               ),
-              child: _isLoading
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text('إنشاء الكويز', style: TextStyle(fontSize: 18)),
             ),
+            SizedBox(height: 24.h),
           ],
         ),
       ),
     );
+  }
+
+  String _getTableExampleText() {
+    switch (_selectedOperation) {
+      case OperationType.multiply:
+        return 'مثال: جدول 5 يعني (5×1، 5×2، 5×3، ...)';
+      case OperationType.add:
+        return 'مثال: جدول 5 يعني (5+1، 5+2، 5+3، ...)';
+      case OperationType.subtract:
+        return 'مثال: جدول 10 يعني (10-1، 10-2، 10-3، ...)';
+      case OperationType.divide:
+        return 'مثال: جدول 12 يعني (12÷1، 12÷2، 12÷3، ...)';
+      default:
+        return '';
+    }
+  }
+
+  String _getRangeExplanation() {
+    if (_useSpecificTable) {
+      return 'الأرقام التي سيتم استخدامها مع الجدول المحدد';
+    }
+    switch (_selectedOperation) {
+      case OperationType.multiply:
+        return 'مثال: من 1 إلى 10 يعني أسئلة مثل (3×5، 7×2، ...)';
+      case OperationType.add:
+        return 'مثال: من 1 إلى 10 يعني أسئلة مثل (3+5، 7+2، ...)';
+      case OperationType.subtract:
+        return 'مثال: من 1 إلى 10 يعني أسئلة مثل (10-5، 8-3، ...)';
+      case OperationType.divide:
+        return 'مثال: من 1 إلى 10 يعني أسئلة مثل (20÷5، 18÷2، ...)';
+      case OperationType.mixed:
+        return 'نطاق الأرقام لجميع العمليات الحسابية';
+      default:
+        return 'حدد نطاق الأرقام المستخدمة في الأسئلة';
+    }
   }
 
   Widget _buildTypeCard({

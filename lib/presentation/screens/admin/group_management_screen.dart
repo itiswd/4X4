@@ -1,9 +1,11 @@
 import 'package:educational_app/config/app_colors.dart';
 import 'package:educational_app/data/models/group.dart';
+import 'package:educational_app/data/models/theme_provider.dart';
 import 'package:educational_app/main.dart';
 import 'package:educational_app/presentation/screens/admin/quiz_management_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
 
 import '../../../data/services/group_service.dart';
 
@@ -282,10 +284,14 @@ class _GroupManagementScreenState extends State<GroupManagementScreen> {
                   Container(
                     padding: EdgeInsets.all(12.w),
                     decoration: BoxDecoration(
-                      color: AppColors.grey50,
+                      color: context.watch<ThemeProvider>().isDarkMode
+                          ? AppColors.grey900
+                          : AppColors.grey50,
                       borderRadius: BorderRadius.circular(12.r),
                       border: Border.all(
-                        color: AppColors.borderLight,
+                        color: context.watch<ThemeProvider>().isDarkMode
+                            ? AppColors.grey900
+                            : AppColors.borderLight,
                         width: 1,
                       ),
                     ),
@@ -499,7 +505,7 @@ class _GroupManagementScreenState extends State<GroupManagementScreen> {
           return RefreshIndicator(
             onRefresh: () async => _reloadGroups(),
             child: ListView.builder(
-              padding: EdgeInsets.all(16.w),
+              padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 92.h),
               itemCount: groups.length,
               itemBuilder: (context, index) => _buildGroupCard(groups[index]),
             ),

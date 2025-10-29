@@ -321,7 +321,7 @@ class _QuizManagementScreenState extends State<QuizManagementScreen> {
           return RefreshIndicator(
             onRefresh: () async => _reloadQuizzes(),
             child: ListView.builder(
-              padding: EdgeInsets.all(16.w),
+              padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 92.h),
               itemCount: quizzes.length,
               itemBuilder: (context, index) => _buildQuizCard(quizzes[index]),
             ),

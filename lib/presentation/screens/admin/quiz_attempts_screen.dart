@@ -1,9 +1,11 @@
 // lib/presentation/screens/admin/quiz_attempts_screen.dart
+import 'package:educational_app/data/models/theme_provider.dart';
 import 'package:educational_app/presentation/screens/admin/student_attempt_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 import '../../../config/app_colors.dart';
 import '../../../data/models/quiz.dart';
@@ -269,7 +271,9 @@ class _QuizAttemptsScreenState extends State<QuizAttemptsScreen> {
                               width: double.infinity,
                               padding: EdgeInsets.all(12.w),
                               decoration: BoxDecoration(
-                                color: AppColors.grey100,
+                                color: context.watch<ThemeProvider>().isDarkMode
+                                    ? AppColors.grey900
+                                    : AppColors.grey100,
                                 borderRadius: BorderRadius.circular(8.r),
                               ),
                               child: Row(

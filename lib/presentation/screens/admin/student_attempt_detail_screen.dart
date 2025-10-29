@@ -1,6 +1,8 @@
 // lib/presentation/screens/admin/student_attempt_detail_screen.dart
+import 'package:educational_app/data/models/theme_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
 
 import '../../../config/app_colors.dart';
 import '../../../main.dart';
@@ -171,7 +173,9 @@ class _StudentAttemptDetailScreenState
                         'النتيجة الإجمالية',
                         style: TextStyle(
                           fontSize: 14.sp,
-                          color: Colors.grey.shade700,
+                          color: context.watch<ThemeProvider>().isDarkMode
+                              ? AppColors.grey50
+                              : AppColors.grey900,
                         ),
                       ),
                       SizedBox(height: 4.h),
@@ -363,7 +367,9 @@ class _StudentAttemptDetailScreenState
                             Container(
                               padding: EdgeInsets.all(12.w),
                               decoration: BoxDecoration(
-                                color: AppColors.grey50,
+                                color: context.watch<ThemeProvider>().isDarkMode
+                                    ? AppColors.grey900
+                                    : AppColors.grey50,
                                 borderRadius: BorderRadius.circular(8.r),
                               ),
                               child: Column(
@@ -382,7 +388,12 @@ class _StudentAttemptDetailScreenState
                                         'إجابة الطالب: ',
                                         style: TextStyle(
                                           fontSize: 14.sp,
-                                          color: Colors.grey.shade700,
+                                          color:
+                                              context
+                                                  .watch<ThemeProvider>()
+                                                  .isDarkMode
+                                              ? AppColors.grey50
+                                              : AppColors.grey900,
                                         ),
                                       ),
                                       Text(
@@ -416,7 +427,12 @@ class _StudentAttemptDetailScreenState
                                           'الإجابة الصحيحة: ',
                                           style: TextStyle(
                                             fontSize: 14.sp,
-                                            color: Colors.grey.shade700,
+                                            color:
+                                                context
+                                                    .watch<ThemeProvider>()
+                                                    .isDarkMode
+                                                ? AppColors.grey50
+                                                : AppColors.grey900,
                                           ),
                                         ),
                                         Text(

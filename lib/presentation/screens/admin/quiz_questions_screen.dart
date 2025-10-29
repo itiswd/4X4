@@ -309,7 +309,7 @@ class _QuizQuestionsScreenState extends State<QuizQuestionsScreen> {
       appBar: AppBar(
         title: Text(
           widget.quiz.title,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20.sp),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios),
@@ -365,7 +365,12 @@ class _QuizQuestionsScreenState extends State<QuizQuestionsScreen> {
           return RefreshIndicator(
             onRefresh: () async => _reloadQuestions(),
             child: ListView.builder(
-              padding: EdgeInsets.all(16.w),
+              padding: EdgeInsets.fromLTRB(
+                16.w,
+                10.h,
+                16.w,
+                widget.quiz.quizType == QuizType.manual ? 102 : 32.h,
+              ),
               itemCount: questions.length,
               itemBuilder: (context, index) =>
                   _buildQuestionCard(questions[index], index),

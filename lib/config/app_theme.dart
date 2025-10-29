@@ -58,7 +58,7 @@ class AppTheme {
           ),
         ),
         margin: const EdgeInsets.symmetric(vertical: 8),
-        color: AppColors.white,
+        color: AppColors.cardBackground,
       ),
 
       // 📝 حقول الإدخال
