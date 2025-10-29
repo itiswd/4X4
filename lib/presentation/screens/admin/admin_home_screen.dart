@@ -1,4 +1,5 @@
 // lib/presentation/screens/admin/admin_home_screen.dart
+import 'package:educational_app/presentation/widgets/theme_toggle_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
@@ -55,6 +56,9 @@ class AdminHomeScreen extends StatelessWidget {
           'لوحة تحكم المدير',
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
         ),
+        actions: const [
+          ThemeToggleButton(), // ✅ إضافة زر التبديل
+        ],
       ),
       // ضيف هذا بعد body: وقبل قفل الـ Scaffold
       bottomNavigationBar: Container(

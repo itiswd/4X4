@@ -1,4 +1,5 @@
 import 'package:educational_app/main.dart';
+import 'package:educational_app/presentation/widgets/theme_toggle_button.dart';
 import 'package:educational_app/utils/responsive_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -96,6 +97,9 @@ class _LoginScreenState extends State<LoginScreen> {
           'تسجيل الدخول',
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
         ),
+        actions: const [
+          ThemeToggleButton(), // ✅ إضافة زر التبديل
+        ],
       ),
       body: Center(
         child: SingleChildScrollView(

@@ -1,32 +1,31 @@
-// lib/presentation/screens/admin/student_detail_screen.dart
+// lib/presentation/screens/admin/quiz_attempts_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 
 import '../../../config/app_colors.dart';
-import '../../../data/models/profile.dart';
+import '../../../data/models/quiz.dart';
 import '../../../data/services/progress_service.dart';
 
-class StudentDetailScreen extends StatefulWidget {
-  final Profile student;
-
-  const StudentDetailScreen({super.key, required this.student});
+class QuizAttemptsScreen extends StatefulWidget {
+  final Quiz quiz;
+  const QuizAttemptsScreen({super.key, required this.quiz});
 
   @override
-  State<StudentDetailScreen> createState() => _StudentDetailScreenState();
+  State<QuizAttemptsScreen> createState() => _QuizAttemptsScreenState();
 }
 
-class _StudentDetailScreenState extends State<StudentDetailScreen> {
+class _QuizAttemptsScreenState extends State<QuizAttemptsScreen> {
   final ProgressService _progressService = ProgressService();
-  late Future<List<Map<String, dynamic>>> _quizAttemptsFuture;
+  late Future<List<Map<String, dynamic>>> _attemptsFuture;
   bool _isDateFormatInitialized = false;
 
   @override
   void initState() {
     super.initState();
     _initializeDateFormatting();
-    _loadData();
+    _loadAttempts();
   }
 
   Future<void> _initializeDateFormatting() async {
@@ -36,16 +35,10 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
     }
   }
 
-  void _loadData() {
+  void _loadAttempts() {
     setState(() {
-      _quizAttemptsFuture = _progressService.getStudentAllQuizAttempts(
-        widget.student.id,
-      );
+      _attemptsFuture = _progressService.getQuizAttempts(widget.quiz.id);
     });
-  }
-
-  Color _getPerformanceColor(double percentage) {
-    return AppColors.getPerformanceColor(percentage);
   }
 
   String _formatDateTime(String dateTimeStr) {
@@ -65,54 +58,59 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.student.fullName,
-          style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold),
+          'محاولات: ${widget.quiz.title}',
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
         ),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, size: 20.sp),
+          icon: const Icon(Icons.arrow_back_ios),
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: RefreshIndicator(
-        onRefresh: () async => _loadData(),
-        child: FutureBuilder<List<Map<String, dynamic>>>(
-          future: _quizAttemptsFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+        future: _attemptsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-            if (snapshot.hasError) {
-              return Center(child: Text('خطأ: ${snapshot.error}'));
-            }
+          if (snapshot.hasError) {
+            return Center(child: Text('خطأ: ${snapshot.error}'));
+          }
 
-            final attempts = snapshot.data ?? [];
+          final attempts = snapshot.data ?? [];
 
-            if (attempts.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.quiz_outlined,
-                      size: 80.sp,
-                      color: Colors.grey.shade400,
+          if (attempts.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.inbox_outlined,
+                    size: 80.sp,
+                    color: Colors.grey.shade400,
+                  ),
+                  SizedBox(height: 16.h),
+                  Text(
+                    'لا توجد محاولات بعد',
+                    style: TextStyle(
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade600,
                     ),
-                    SizedBox(height: 16.h),
-                    Text(
-                      'لم يحل أي كويزات بعد',
-                      style: TextStyle(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }
+                  ),
+                  SizedBox(height: 8.h),
+                  Text(
+                    'لم يحل أي طالب هذا الكويز بعد',
+                    style: TextStyle(fontSize: 14.sp, color: Colors.grey),
+                  ),
+                ],
+              ),
+            );
+          }
 
-            return ListView.builder(
+          return RefreshIndicator(
+            onRefresh: () async => _loadAttempts(),
+            child: ListView.builder(
               padding: EdgeInsets.all(16.w),
               itemCount: attempts.length,
               itemBuilder: (context, index) {
@@ -121,8 +119,8 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
                 final total = attempt['total_questions'] as int;
                 final percentage = (score / total) * 100;
                 final completedAt = attempt['completed_at'] as String;
-                final quiz = attempt['quizzes'] as Map<String, dynamic>?;
-                final quizTitle = quiz?['title'] ?? 'كويز محذوف';
+                final profile = attempt['profiles'] as Map<String, dynamic>?;
+                final studentName = profile?['full_name'] ?? 'طالب محذوف';
 
                 return Card(
                   margin: EdgeInsets.only(bottom: 12.h),
@@ -130,7 +128,9 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16.r),
                     side: BorderSide(
-                      color: _getPerformanceColor(percentage).withAlpha(77),
+                      color: AppColors.getPerformanceColor(
+                        percentage,
+                      ).withAlpha(77),
                       width: 2,
                     ),
                   ),
@@ -139,21 +139,31 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // العنوان والنسبة
+                        // اسم الطالب والنسبة
                         Row(
                           children: [
+                            CircleAvatar(
+                              radius: 20.r,
+                              backgroundColor: AppColors.primary.withAlpha(32),
+                              child: Icon(
+                                Icons.person,
+                                color: AppColors.primary,
+                                size: 20.sp,
+                              ),
+                            ),
+                            SizedBox(width: 12.w),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    quizTitle,
+                                    studentName,
                                     style: TextStyle(
-                                      fontSize: 18.sp,
+                                      fontSize: 16.sp,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                  SizedBox(height: 4.h),
+                                  SizedBox(height: 2.h),
                                   Text(
                                     _formatDateTime(completedAt),
                                     style: TextStyle(
@@ -170,7 +180,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
                                 vertical: 6.h,
                               ),
                               decoration: BoxDecoration(
-                                color: _getPerformanceColor(
+                                color: AppColors.getPerformanceColor(
                                   percentage,
                                 ).withAlpha(25),
                                 borderRadius: BorderRadius.circular(8.r),
@@ -178,9 +188,11 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
                               child: Text(
                                 '${percentage.toInt()}%',
                                 style: TextStyle(
-                                  fontSize: 20.sp,
+                                  fontSize: 18.sp,
                                   fontWeight: FontWeight.bold,
-                                  color: _getPerformanceColor(percentage),
+                                  color: AppColors.getPerformanceColor(
+                                    percentage,
+                                  ),
                                 ),
                               ),
                             ),
@@ -202,14 +214,16 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
                             children: [
                               Icon(
                                 Icons.stars,
-                                size: 20.sp,
-                                color: _getPerformanceColor(percentage),
+                                size: 18.sp,
+                                color: AppColors.getPerformanceColor(
+                                  percentage,
+                                ),
                               ),
                               SizedBox(width: 8.w),
                               Text(
                                 'النتيجة: $score من $total',
                                 style: TextStyle(
-                                  fontSize: 16.sp,
+                                  fontSize: 14.sp,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -221,9 +235,9 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
                   ),
                 );
               },
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
     );
   }

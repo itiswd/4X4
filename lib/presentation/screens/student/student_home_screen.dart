@@ -1,6 +1,7 @@
 // lib/presentation/screens/student/student_home_screen.dart
 import 'package:educational_app/presentation/screens/student/student_quizzes_list_screen.dart';
 import 'package:educational_app/presentation/widgets/loading_screen.dart';
+import 'package:educational_app/presentation/widgets/theme_toggle_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
@@ -192,6 +193,9 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           'لوحة تحكم الطالب',
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
         ),
+        actions: const [
+          ThemeToggleButton(), // ✅ إضافة زر التبديل
+        ],
       ),
       // ضيف هذا بعد body: وقبل قفل الـ Scaffold
       bottomNavigationBar: Container(

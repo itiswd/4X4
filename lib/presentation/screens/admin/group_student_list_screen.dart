@@ -28,8 +28,8 @@ class _GroupStudentListScreenState extends State<GroupStudentListScreen> {
   }
 
   Widget _buildStudentTile(Profile student) {
-    return FutureBuilder<Map<String, dynamic>>(
-      future: _progressService.getStudentPerformanceSummary(student.id),
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _progressService.getStudentAllQuizAttempts(student.id),
       builder: (context, snapshot) {
         String subtitleText = 'جاري تحميل التقدم...';
         Widget trailingWidget = SizedBox(
@@ -44,34 +44,47 @@ class _GroupStudentListScreenState extends State<GroupStudentListScreen> {
           subtitleText = 'فشل تحميل التقدم';
           trailingWidget = const Icon(Icons.error, color: Colors.red);
         } else if (snapshot.hasData) {
-          final summary = snapshot.data!;
-          final total = summary['total_attempts'];
-          final accuracy = summary['accuracy'];
+          final attempts = snapshot.data!;
 
-          subtitleText = 'عدد الاسئلة: $total \n الدقة: ${accuracy.toInt()}%';
+          if (attempts.isEmpty) {
+            subtitleText = 'لم يحل أي كويزات بعد';
+            trailingWidget = Icon(
+              Icons.info_outline,
+              size: 24.sp,
+              color: Colors.grey,
+            );
+          } else {
+            // حساب المتوسط
+            int totalScore = 0;
+            int totalQuestions = 0;
 
-          // أيقونة السهم للتفاصيل
-          trailingWidget = Row(
-            mainAxisSize: MainAxisSize.min,
+            for (var attempt in attempts) {
+              totalScore += attempt['score'] as int;
+              totalQuestions += attempt['total_questions'] as int;
+            }
 
-            children: [
-              Text(
-                '${accuracy.toStringAsFixed(0)}%',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 40.sp,
-                  color: AppColors.getPerformanceColor(accuracy),
-                ),
+            final avgPercentage = totalQuestions > 0
+                ? (totalScore / totalQuestions) * 100
+                : 0.0;
+
+            subtitleText =
+                'عدد الكويزات: ${attempts.length}\nالمتوسط: ${avgPercentage.toInt()}%';
+
+            trailingWidget = Text(
+              '${avgPercentage.toStringAsFixed(0)}%',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 40.sp,
+                color: AppColors.getPerformanceColor(avgPercentage),
               ),
-            ],
-          );
+            );
+          }
         }
 
         return Card(
           margin: EdgeInsets.symmetric(vertical: 6.h),
           child: ListTile(
             onTap: () {
-              // الانتقال لشاشة التفاصيل
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (context) => StudentDetailScreen(student: student),

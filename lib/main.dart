@@ -1,4 +1,5 @@
 // lib/main.dart
+import 'package:educational_app/data/models/theme_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -23,12 +24,14 @@ final supabase = Supabase.instance.client;
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Supabase
   await Supabase.initialize(url: supaBaseUrl, anonKey: supaBaseUrlAnon);
 
   runApp(
-    ChangeNotifierProvider(
-      create: (context) => AuthStateModel(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => AuthStateModel()),
+        ChangeNotifierProvider(create: (context) => ThemeProvider()), // ✅ إضافة
+      ],
       child: const MyApp(),
     ),
   );
@@ -41,26 +44,18 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = context.watch<ThemeProvider>();
     return ScreenUtilInit(
-      designSize: const Size(375, 812), // iPhone X base size
+      designSize: const Size(375, 812),
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (context, child) {
         return MaterialApp(
           title: 'التطبيق التعليمي',
           debugShowCheckedModeBanner: false,
-
-          // ✨ استخدام الثيمات من ملف منفصل
-          theme: AppTheme.lightTheme.copyWith(
-            // 🎨 جعل خلفية Safe Area شفافة
-            scaffoldBackgroundColor:
-                AppTheme.lightTheme.scaffoldBackgroundColor,
-          ),
-          darkTheme: AppTheme.darkTheme.copyWith(
-            scaffoldBackgroundColor: AppTheme.darkTheme.scaffoldBackgroundColor,
-          ),
-          themeMode: ThemeMode.system, // يتبع إعدادات النظام
-          // 📱 إعدادات التطبيق
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: themeProvider.themeMode, // ✅ استخدام ThemeProvider
           builder: (context, child) {
             // 🔧 تخصيص الـ System UI Overlay
             SystemChrome.setSystemUIOverlayStyle(

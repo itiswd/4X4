@@ -1,5 +1,6 @@
 // lib/presentation/screens/admin/quiz_management_screen.dart
 import 'package:educational_app/data/services/quiz_services.dart';
+import 'package:educational_app/presentation/screens/admin/quiz_attempts_screen.dart';
 import 'package:educational_app/presentation/screens/admin/quiz_questions_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -218,6 +219,25 @@ class _QuizManagementScreenState extends State<QuizManagementScreen> {
                           color: AppColors.primary,
                         ),
                       ],
+                    ),
+                  ),
+                  SizedBox(height: 12.h),
+
+                  // زر عرض المحاولات
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => QuizAttemptsScreen(quiz: quiz),
+                        ),
+                      );
+                    },
+                    icon: Icon(Icons.people_outline, size: 18.sp),
+                    label: const Text('عرض محاولات الطلاب'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.secondary,
+                      padding: EdgeInsets.symmetric(vertical: 10.h),
                     ),
                   ),
                 ],
