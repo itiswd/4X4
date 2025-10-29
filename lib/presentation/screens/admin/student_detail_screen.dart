@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../../config/app_colors.dart';
 import '../../../data/models/profile.dart';
 import '../../../data/services/progress_service.dart';
+import 'student_attempt_detail_screen.dart';
 
 class StudentDetailScreen extends StatefulWidget {
   final Profile student;
@@ -121,8 +122,12 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
                 final total = attempt['total_questions'] as int;
                 final percentage = (score / total) * 100;
                 final completedAt = attempt['completed_at'] as String;
+                final attemptId = attempt['id'] as String;
+
                 final quiz = attempt['quizzes'] as Map<String, dynamic>?;
                 final quizTitle = quiz?['title'] ?? 'كويز محذوف';
+                final quizType = quiz?['quiz_type'] as String?;
+                final operationType = quiz?['operation_type'] as String?;
 
                 return Card(
                   margin: EdgeInsets.only(bottom: 12.h),
@@ -134,89 +139,196 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
                       width: 2,
                     ),
                   ),
-                  child: Padding(
-                    padding: EdgeInsets.all(16.w),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // العنوان والنسبة
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    quizTitle,
-                                    style: TextStyle(
-                                      fontSize: 18.sp,
-                                      fontWeight: FontWeight.bold,
+                  child: InkWell(
+                    onTap: () {
+                      // ✅ فتح صفحة التفاصيل عند الضغط
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => StudentAttemptDetailScreen(
+                            attemptId: attemptId,
+                            studentName: widget.student.fullName,
+                            score: score,
+                            totalQuestions: total,
+                          ),
+                        ),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(16.r),
+                    child: Padding(
+                      padding: EdgeInsets.all(16.w),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // العنوان والنسبة
+                          Row(
+                            children: [
+                              // أيقونة الكويز
+                              Container(
+                                padding: EdgeInsets.all(12.w),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withAlpha(32),
+                                  borderRadius: BorderRadius.circular(12.r),
+                                ),
+                                child: Icon(
+                                  quizType == 'auto'
+                                      ? Icons.auto_awesome
+                                      : Icons.edit_note,
+                                  color: AppColors.primary,
+                                  size: 24.sp,
+                                ),
+                              ),
+                              SizedBox(width: 12.w),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      quizTitle,
+                                      style: TextStyle(
+                                        fontSize: 18.sp,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
+                                    SizedBox(height: 4.h),
+                                    Text(
+                                      _formatDateTime(completedAt),
+                                      style: TextStyle(
+                                        fontSize: 12.sp,
+                                        color: Colors.grey.shade600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 12.w,
+                                  vertical: 6.h,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: _getPerformanceColor(
+                                    percentage,
+                                  ).withAlpha(25),
+                                  borderRadius: BorderRadius.circular(8.r),
+                                ),
+                                child: Text(
+                                  '${percentage.toInt()}%',
+                                  style: TextStyle(
+                                    fontSize: 20.sp,
+                                    fontWeight: FontWeight.bold,
+                                    color: _getPerformanceColor(percentage),
                                   ),
-                                  SizedBox(height: 4.h),
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          SizedBox(height: 12.h),
+
+                          // النتيجة
+                          Container(
+                            width: double.infinity,
+                            padding: EdgeInsets.all(12.w),
+                            decoration: BoxDecoration(
+                              color: AppColors.grey100,
+                              borderRadius: BorderRadius.circular(8.r),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.stars,
+                                      size: 20.sp,
+                                      color: _getPerformanceColor(percentage),
+                                    ),
+                                    SizedBox(width: 8.w),
+                                    Text(
+                                      'النتيجة: $score من $total',
+                                      style: TextStyle(
+                                        fontSize: 16.sp,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 16.sp,
+                                  color: AppColors.primary,
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // نوع العملية (إن وجد)
+                          if (operationType != null) ...[
+                            SizedBox(height: 8.h),
+                            Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 8.w,
+                                vertical: 4.h,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.purple.withAlpha(25),
+                                borderRadius: BorderRadius.circular(6.r),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.calculate,
+                                    size: 14.sp,
+                                    color: Colors.purple,
+                                  ),
+                                  SizedBox(width: 4.w),
                                   Text(
-                                    _formatDateTime(completedAt),
+                                    _getOperationTypeArabic(operationType),
                                     style: TextStyle(
                                       fontSize: 12.sp,
-                                      color: Colors.grey.shade600,
+                                      color: Colors.purple,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                            Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 12.w,
-                                vertical: 6.h,
-                              ),
-                              decoration: BoxDecoration(
-                                color: _getPerformanceColor(
-                                  percentage,
-                                ).withAlpha(25),
-                                borderRadius: BorderRadius.circular(8.r),
-                              ),
-                              child: Text(
-                                '${percentage.toInt()}%',
-                                style: TextStyle(
-                                  fontSize: 20.sp,
-                                  fontWeight: FontWeight.bold,
-                                  color: _getPerformanceColor(percentage),
-                                ),
-                              ),
-                            ),
                           ],
-                        ),
 
-                        SizedBox(height: 12.h),
+                          SizedBox(height: 12.h),
 
-                        // النتيجة
-                        Container(
-                          width: double.infinity,
-                          padding: EdgeInsets.all(12.w),
-                          decoration: BoxDecoration(
-                            color: AppColors.grey100,
-                            borderRadius: BorderRadius.circular(8.r),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.stars,
-                                size: 20.sp,
-                                color: _getPerformanceColor(percentage),
-                              ),
-                              SizedBox(width: 8.w),
-                              Text(
-                                'النتيجة: $score من $total',
-                                style: TextStyle(
-                                  fontSize: 16.sp,
-                                  fontWeight: FontWeight.bold,
+                          // رسالة توضيحية
+                          Container(
+                            width: double.infinity,
+                            padding: EdgeInsets.symmetric(vertical: 8.h),
+                            decoration: BoxDecoration(
+                              color: AppColors.info.withAlpha(25),
+                              borderRadius: BorderRadius.circular(6.r),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.touch_app,
+                                  size: 16.sp,
+                                  color: AppColors.info,
                                 ),
-                              ),
-                            ],
+                                SizedBox(width: 6.w),
+                                Text(
+                                  'اضغط لعرض تفاصيل الإجابات',
+                                  style: TextStyle(
+                                    fontSize: 13.sp,
+                                    color: AppColors.info,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -226,5 +338,22 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
         ),
       ),
     );
+  }
+
+  String _getOperationTypeArabic(String operationType) {
+    switch (operationType) {
+      case 'multiply':
+        return 'ضرب';
+      case 'add':
+        return 'جمع';
+      case 'subtract':
+        return 'طرح';
+      case 'divide':
+        return 'قسمة';
+      case 'mixed':
+        return 'منوع';
+      default:
+        return operationType;
+    }
   }
 }
