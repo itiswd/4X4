@@ -1,7 +1,9 @@
 // lib/presentation/screens/admin/create_quiz_screen.dart
+import 'package:educational_app/data/models/theme_provider.dart';
 import 'package:educational_app/data/services/quiz_services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
 
 import '../../../config/app_colors.dart';
 import '../../../data/models/group.dart';
@@ -245,9 +247,15 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
                       Container(
                         padding: EdgeInsets.all(12.w),
                         decoration: BoxDecoration(
-                          color: AppColors.grey50,
+                          color: context.watch<ThemeProvider>().isDarkMode
+                              ? AppColors.grey900
+                              : AppColors.grey50,
                           borderRadius: BorderRadius.circular(8.r),
-                          border: Border.all(color: AppColors.borderLight),
+                          border: Border.all(
+                            color: context.watch<ThemeProvider>().isDarkMode
+                                ? AppColors.borderDark
+                                : AppColors.borderLight,
+                          ),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -317,9 +325,15 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
                         Container(
                           padding: EdgeInsets.all(12.w),
                           decoration: BoxDecoration(
-                            color: AppColors.grey50,
+                            color: context.watch<ThemeProvider>().isDarkMode
+                                ? AppColors.grey900
+                                : AppColors.grey50,
                             borderRadius: BorderRadius.circular(8.r),
-                            border: Border.all(color: AppColors.borderLight),
+                            border: Border.all(
+                              color: context.watch<ThemeProvider>().isDarkMode
+                                  ? AppColors.borderDark
+                                  : AppColors.borderLight,
+                            ),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -368,8 +382,9 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
                                   ),
                                   keyboardType: TextInputType.number,
                                   validator: (v) {
-                                    if (v?.isEmpty ?? true)
+                                    if (v?.isEmpty ?? true) {
                                       return 'الرجاء إدخال رقم الجدول';
+                                    }
                                     final num = int.tryParse(v!);
                                     if (num == null || num < 1 || num > 12) {
                                       return 'الرقم يجب أن يكون بين 1 و 12';
@@ -388,9 +403,15 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
                       Container(
                         padding: EdgeInsets.all(12.w),
                         decoration: BoxDecoration(
-                          color: AppColors.grey50,
+                          color: context.watch<ThemeProvider>().isDarkMode
+                              ? AppColors.grey900
+                              : AppColors.grey50,
                           borderRadius: BorderRadius.circular(8.r),
-                          border: Border.all(color: AppColors.borderLight),
+                          border: Border.all(
+                            color: context.watch<ThemeProvider>().isDarkMode
+                                ? AppColors.borderDark
+                                : AppColors.borderLight,
+                          ),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -462,9 +483,15 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
                       Container(
                         padding: EdgeInsets.all(12.w),
                         decoration: BoxDecoration(
-                          color: AppColors.grey50,
+                          color: context.watch<ThemeProvider>().isDarkMode
+                              ? AppColors.grey900
+                              : AppColors.grey50,
                           borderRadius: BorderRadius.circular(8.r),
-                          border: Border.all(color: AppColors.borderLight),
+                          border: Border.all(
+                            color: context.watch<ThemeProvider>().isDarkMode
+                                ? AppColors.borderDark
+                                : AppColors.borderLight,
+                          ),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -593,11 +620,19 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
         padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
           border: Border.all(
-            color: isSelected ? AppColors.primary : Colors.grey.shade300,
+            color: isSelected
+                ? AppColors.primary
+                : context.watch<ThemeProvider>().isDarkMode
+                ? AppColors.borderDark
+                : AppColors.borderLight,
             width: isSelected ? 2 : 1,
           ),
           borderRadius: BorderRadius.circular(12.r),
-          color: isSelected ? AppColors.primary.withAlpha(25) : Colors.white,
+          color: isSelected
+              ? AppColors.primary.withAlpha(25)
+              : context.watch<ThemeProvider>().isDarkMode
+              ? AppColors.grey900
+              : Colors.white,
         ),
         child: Column(
           children: [
@@ -612,7 +647,11 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
               style: TextStyle(
                 fontSize: 16.sp,
                 fontWeight: FontWeight.bold,
-                color: isSelected ? AppColors.primary : Colors.black,
+                color: isSelected
+                    ? AppColors.primary
+                    : context.watch<ThemeProvider>().isDarkMode
+                    ? AppColors.white
+                    : Colors.black,
               ),
             ),
             SizedBox(height: 4.h),

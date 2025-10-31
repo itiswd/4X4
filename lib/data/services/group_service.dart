@@ -21,7 +21,9 @@ class GroupService {
   Future<List<Group>> getAllGroups() async {
     final List<Map<String, dynamic>> response = await supabase
         .from('groups')
-        .select()
+        .select(
+          '*, profiles!groups_admin_id_fkey(full_name)',
+        ) // ✅ جلب اسم المدرس
         .order('name', ascending: true);
 
     return response.map((map) => Group.fromMap(map)).toList();

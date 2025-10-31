@@ -358,11 +358,45 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   labelText: 'اختيار المجموعة',
                                   prefixIcon: Icon(Icons.group),
                                 ),
+                                isExpanded: true, // ✅ مهم لعرض النص كاملاً
                                 initialValue: _selectedGroupId,
                                 items: _availableGroups.map((group) {
                                   return DropdownMenuItem(
                                     value: group.id,
-                                    child: Text(group.name),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 8.0,
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            group.name,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            group.adminName != null
+                                                ? 'المدرس: ${group.adminName}'
+                                                : 'المدرس: غير محدد',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: Colors.grey.shade600,
+                                              fontStyle: group.adminName == null
+                                                  ? FontStyle.italic
+                                                  : FontStyle.normal,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   );
                                 }).toList(),
                                 onChanged: (value) {
@@ -377,6 +411,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   }
                                   return null;
                                 },
+                                // ✅ تحسين ارتفاع القائمة
+                                menuMaxHeight: 300,
                               ),
 
                       if (_selectedRole == 'student')
