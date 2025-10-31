@@ -22,8 +22,8 @@ class GroupService {
     final List<Map<String, dynamic>> response = await supabase
         .from('groups')
         .select(
-          '*, profiles!groups_admin_id_fkey(full_name)',
-        ) // ✅ جلب اسم المدرس
+          '*, admin:profiles!groups_admin_id_fkey(full_name)', // ✅ تغيير الاسم
+        )
         .order('name', ascending: true);
 
     return response.map((map) => Group.fromMap(map)).toList();

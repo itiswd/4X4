@@ -4,6 +4,7 @@ import 'package:educational_app/data/services/auth_service.dart';
 import 'package:educational_app/main.dart';
 import 'package:educational_app/utils/responsive_utils.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -36,15 +37,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _fetchGroupsForAnonymous();
   }
 
-  // ✅ دالة لجلب المجموعات بدون تسجيل دخول
   Future<void> _fetchGroupsForAnonymous() async {
     setState(() => _isGroupsLoading = true);
 
     try {
-      // استخدام استعلام مباشر بدون مصادقة
+      // ✅ استخدام استعلام محسّن
       final response = await supabase
           .from('groups')
-          .select('id, name, admin_id')
+          .select(
+            'id, name, admin_id, admin:profiles!groups_admin_id_fkey(full_name)',
+          )
           .order('name', ascending: true);
 
       if (mounted) {
@@ -54,14 +56,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
         setState(() {
           _availableGroups = groups;
-          // تعيين أول مجموعة كقيمة افتراضية
           if (_availableGroups.isNotEmpty && _selectedRole == 'student') {
             _selectedGroupId = _availableGroups.first.id;
           }
           _isGroupsLoading = false;
         });
+
+        // ✅ Debug: طباعة البيانات للتأكد
+        for (var group in groups) {
+          debugPrint('Group: ${group.name}, Admin: ${group.adminName}');
+        }
       }
     } catch (e) {
+      debugPrint('Error fetching groups: $e'); // ✅ طباعة الخطأ
       if (mounted) {
         setState(() => _isGroupsLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -331,6 +338,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       const SizedBox(height: 20),
 
                       // اختيار المجموعة (للطالب فقط)
+                      // في ملف lib/presentation/screens/auth/register_screen.dart
+                      // ابحث عن DropdownButtonFormField الخاص بالمجموعات واستبدله بهذا:
                       if (_selectedRole == 'student')
                         _isGroupsLoading
                             ? const Center(
@@ -358,42 +367,52 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   labelText: 'اختيار المجموعة',
                                   prefixIcon: Icon(Icons.group),
                                 ),
-                                isExpanded: true, // ✅ مهم لعرض النص كاملاً
+                                isExpanded: true,
                                 initialValue: _selectedGroupId,
                                 items: _availableGroups.map((group) {
                                   return DropdownMenuItem(
                                     value: group.id,
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 8.0,
+                                    child: Container(
+                                      constraints: BoxConstraints(
+                                        maxHeight: 60, // ✅ تحديد أقصى ارتفاع
                                       ),
-                                      child: Column(
+                                      child: Row(
                                         crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        mainAxisSize: MainAxisSize.min,
+                                            CrossAxisAlignment.center,
                                         children: [
                                           Text(
                                             group.name,
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16,
-                                            ),
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            group.adminName != null
-                                                ? 'المدرس: ${group.adminName}'
-                                                : 'المدرس: غير محدد',
                                             style: TextStyle(
-                                              fontSize: 13,
-                                              color: Colors.grey.shade600,
-                                              fontStyle: group.adminName == null
-                                                  ? FontStyle.italic
-                                                  : FontStyle.normal,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 14.sp,
                                             ),
                                             overflow: TextOverflow.ellipsis,
+                                            maxLines: 1, // ✅ سطر واحد فقط
                                           ),
+                                          if (group.adminName != null) ...[
+                                            SizedBox(width: 8.w),
+                                            Text(
+                                              '${group.adminName}',
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                color: Colors.grey.shade600,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 1, // ✅ سطر واحد فقط
+                                            ),
+                                          ] else ...[
+                                            SizedBox(width: 8.w),
+                                            Text(
+                                              'المدرس غير محدد',
+                                              style: TextStyle(
+                                                fontSize: 12.sp,
+                                                color: Colors.grey.shade600,
+                                                fontStyle: FontStyle.italic,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 1,
+                                            ),
+                                          ],
                                         ],
                                       ),
                                     ),
@@ -411,8 +430,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   }
                                   return null;
                                 },
-                                // ✅ تحسين ارتفاع القائمة
                                 menuMaxHeight: 300,
+                                itemHeight:
+                                    null, // ✅ السماح بارتفاع ديناميكي محدود
+                                isDense: true, // ✅ تقليل المسافات
                               ),
 
                       if (_selectedRole == 'student')

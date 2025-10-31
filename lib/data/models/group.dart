@@ -2,7 +2,7 @@ class Group {
   final String id;
   final String name;
   final String adminId;
-  final String? adminName; // ✅ اسم المدرس
+  final String? adminName;
 
   Group({
     required this.id,
@@ -11,19 +11,27 @@ class Group {
     this.adminName,
   });
 
-  // لتحويل البيانات من Supabase (JSON/Map) إلى كائن Group
   factory Group.fromMap(Map<String, dynamic> map) {
-    // ✅ معالجة بيانات المدرس بشكل آمن
     String? adminName;
 
-    if (map['profiles'] != null) {
-      if (map['profiles'] is Map<String, dynamic>) {
-        adminName =
-            (map['profiles'] as Map<String, dynamic>)['full_name'] as String?;
-      } else if (map['profiles'] is List &&
-          (map['profiles'] as List).isNotEmpty) {
-        // في بعض الحالات يرجع Supabase array
-        final profile = (map['profiles'] as List).first as Map<String, dynamic>;
+    // ✅ معالجة محسّنة لبيانات المدرس
+    if (map['admin'] != null) {
+      final admin = map['admin'];
+      if (admin is Map<String, dynamic>) {
+        adminName = admin['full_name'] as String?;
+      } else if (admin is List && admin.isNotEmpty) {
+        final adminData = admin.first as Map<String, dynamic>;
+        adminName = adminData['full_name'] as String?;
+      }
+    }
+
+    // ✅ محاولة بديلة (للتوافق مع الكود القديم)
+    if (adminName == null && map['profiles'] != null) {
+      final profiles = map['profiles'];
+      if (profiles is Map<String, dynamic>) {
+        adminName = profiles['full_name'] as String?;
+      } else if (profiles is List && profiles.isNotEmpty) {
+        final profile = profiles.first as Map<String, dynamic>;
         adminName = profile['full_name'] as String?;
       }
     }
@@ -36,7 +44,6 @@ class Group {
     );
   }
 
-  // لتحويل كائن Group إلى Map لإرساله إلى Supabase
   Map<String, dynamic> toMap() {
     return {'name': name, 'admin_id': adminId};
   }
