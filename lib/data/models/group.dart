@@ -14,8 +14,13 @@ class Group {
   factory Group.fromMap(Map<String, dynamic> map) {
     String? adminName;
 
-    // ✅ معالجة محسّنة لبيانات المدرس
-    if (map['admin'] != null) {
+    // ✅ الأولوية الأولى: من عمود admin_name المباشر
+    if (map['admin_name'] != null && map['admin_name'] is String) {
+      adminName = map['admin_name'] as String;
+    }
+
+    // ✅ الأولوية الثانية: من admin join
+    if (adminName == null && map['admin'] != null) {
       final admin = map['admin'];
       if (admin is Map<String, dynamic>) {
         adminName = admin['full_name'] as String?;
@@ -25,7 +30,7 @@ class Group {
       }
     }
 
-    // ✅ محاولة بديلة (للتوافق مع الكود القديم)
+    // ✅ الأولوية الثالثة: من profiles join (للتوافق مع الكود القديم)
     if (adminName == null && map['profiles'] != null) {
       final profiles = map['profiles'];
       if (profiles is Map<String, dynamic>) {
@@ -45,6 +50,13 @@ class Group {
   }
 
   Map<String, dynamic> toMap() {
-    return {'name': name, 'admin_id': adminId};
+    return {
+      'name': name,
+      'admin_id': adminId,
+      // admin_name هيتملى تلقائياً من الـ Trigger
+    };
   }
+
+  // ✅ دالة مساعدة لعرض اسم الأدمن
+  String get displayAdminName => adminName ?? 'غير محدد';
 }

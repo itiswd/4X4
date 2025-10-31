@@ -22,7 +22,7 @@ class GroupService {
     final List<Map<String, dynamic>> response = await supabase
         .from('groups')
         .select(
-          '*, admin:profiles!groups_admin_id_fkey(full_name)', // ✅ تغيير الاسم
+          '*, admin_name', // ✅ جلب admin_name مباشرة
         )
         .order('name', ascending: true);
 

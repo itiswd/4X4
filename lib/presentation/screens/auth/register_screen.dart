@@ -1,4 +1,5 @@
 // lib/presentation/screens/register_screen.dart
+import 'package:educational_app/config/app_colors.dart';
 import 'package:educational_app/data/models/group.dart';
 import 'package:educational_app/data/services/auth_service.dart';
 import 'package:educational_app/main.dart';
@@ -41,12 +42,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _isGroupsLoading = true);
 
     try {
-      // ✅ استخدام استعلام محسّن
+      // ✅ استعلام محسّن يجلب admin_name مباشرة
       final response = await supabase
           .from('groups')
-          .select(
-            'id, name, admin_id, admin:profiles!groups_admin_id_fkey(full_name)',
-          )
+          .select('id, name, admin_id, admin_name')
           .order('name', ascending: true);
 
       if (mounted) {
@@ -64,17 +63,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
         // ✅ Debug: طباعة البيانات للتأكد
         for (var group in groups) {
-          debugPrint('Group: ${group.name}, Admin: ${group.adminName}');
+          debugPrint(
+            '✅ Group: ${group.name}, Admin: ${group.displayAdminName}',
+          );
         }
       }
     } catch (e) {
-      debugPrint('Error fetching groups: $e'); // ✅ طباعة الخطأ
+      debugPrint('❌ Error fetching groups: $e');
       if (mounted) {
         setState(() => _isGroupsLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'تحذير: فشل جلب المجموعات. ${e.toString()}',
+              'فشل جلب المجموعات: ${e.toString()}',
               textAlign: TextAlign.right,
             ),
             backgroundColor: Colors.orange,
@@ -336,10 +337,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         },
                       ),
                       const SizedBox(height: 20),
-
-                      // اختيار المجموعة (للطالب فقط)
-                      // في ملف lib/presentation/screens/auth/register_screen.dart
-                      // ابحث عن DropdownButtonFormField الخاص بالمجموعات واستبدله بهذا:
                       if (_selectedRole == 'student')
                         _isGroupsLoading
                             ? const Center(
@@ -363,9 +360,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 ],
                               )
                             : DropdownButtonFormField<String>(
-                                decoration: const InputDecoration(
+                                decoration: InputDecoration(
+                                  contentPadding: EdgeInsets.fromLTRB(
+                                    20.w,
+                                    8,
+                                    12,
+                                    8,
+                                  ),
                                   labelText: 'اختيار المجموعة',
                                   prefixIcon: Icon(Icons.group),
+
+                                  helperText:
+                                      'اختر المجموعة الخاصة بك مع اسم المدرس',
                                 ),
                                 isExpanded: true,
                                 initialValue: _selectedGroupId,
@@ -374,45 +380,57 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     value: group.id,
                                     child: Container(
                                       constraints: BoxConstraints(
-                                        maxHeight: 60, // ✅ تحديد أقصى ارتفاع
+                                        maxHeight: 56.h,
                                       ),
-                                      child: Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.center,
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
                                         children: [
-                                          Text(
-                                            group.name,
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 14.sp,
-                                            ),
-                                            overflow: TextOverflow.ellipsis,
-                                            maxLines: 1, // ✅ سطر واحد فقط
+                                          Row(
+                                            children: [
+                                              Icon(
+                                                Icons.class_,
+                                                size: 16.sp,
+                                                color: AppColors.primary,
+                                              ),
+                                              SizedBox(width: 6.w),
+                                              Expanded(
+                                                child: Text(
+                                                  group.name,
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 15.sp,
+                                                  ),
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  maxLines: 1,
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                          if (group.adminName != null) ...[
-                                            SizedBox(width: 8.w),
-                                            Text(
-                                              '${group.adminName}',
-                                              style: TextStyle(
-                                                fontSize: 13,
+                                          SizedBox(height: 2.h),
+                                          Row(
+                                            children: [
+                                              Icon(
+                                                Icons.person_outline,
+                                                size: 14.sp,
                                                 color: Colors.grey.shade600,
                                               ),
-                                              overflow: TextOverflow.ellipsis,
-                                              maxLines: 1, // ✅ سطر واحد فقط
-                                            ),
-                                          ] else ...[
-                                            SizedBox(width: 8.w),
-                                            Text(
-                                              'المدرس غير محدد',
-                                              style: TextStyle(
-                                                fontSize: 12.sp,
-                                                color: Colors.grey.shade600,
-                                                fontStyle: FontStyle.italic,
+                                              SizedBox(width: 6.w),
+                                              Expanded(
+                                                child: Text(
+                                                  'المدرس: ${group.displayAdminName}',
+                                                  style: TextStyle(
+                                                    fontSize: 13.sp,
+                                                    color: Colors.grey.shade600,
+                                                  ),
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  maxLines: 1,
+                                                ),
                                               ),
-                                              overflow: TextOverflow.ellipsis,
-                                              maxLines: 1,
-                                            ),
-                                          ],
+                                            ],
+                                          ),
                                         ],
                                       ),
                                     ),
@@ -430,12 +448,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   }
                                   return null;
                                 },
-                                menuMaxHeight: 300,
-                                itemHeight:
-                                    null, // ✅ السماح بارتفاع ديناميكي محدود
-                                isDense: true, // ✅ تقليل المسافات
+                                menuMaxHeight: 400,
+                                itemHeight: null,
+                                isDense: false,
                               ),
-
                       if (_selectedRole == 'student')
                         const SizedBox(height: 20),
 
